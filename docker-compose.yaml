@@ -1,0 +1,40 @@
+services:
+  # ============================================================================
+  # Serviço da Aplicação Web: Dimensionamento Elétrico (NBR 5410 & DIS-NOR-030)
+  # ============================================================================
+  app:
+    container_name: dimensionamento-eletrico
+    image: dimensionamento-eletrico:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    # Porta exposta apenas internamente na rede do Docker (não exposta no host)
+    expose:
+      - "80"
+    networks:
+      - tunnel-net
+
+  # ============================================================================
+  # Serviço Cloudflare Tunnel (cloudflared)
+  # Cria túnel seguro de acesso externo sem necessidade de abrir portas no roteador/host
+  # ============================================================================
+  tunnel:
+    container_name: cloudflared-tunnel
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    depends_on:
+      - app
+    networks:
+      - tunnel-net
+    # Modo padrão: Túnel com Token do Cloudflare Zero Trust (definido em TUNNEL_TOKEN no .env)
+    # Para teste temporário sem token (Quick Tunnel), substitua o command por:
+    # command: tunnel --no-autoupdate --url http://app:80
+    command: tunnel --no-autoupdate run
+    environment:
+      - TUNNEL_TOKEN=${TUNNEL_TOKEN:-}
+
+networks:
+  tunnel-net:
+    name: dimensionamento-network
+    driver: bridge

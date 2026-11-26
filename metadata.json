@@ -1,0 +1,6 @@
+{
+  "name": "Dimensionamento Elétrico NBR 5410 & DIS-NOR-030",
+  "description": "Dimensionamento elétrico residencial automatizado baseado na NBR 5410 e norma DIS-NOR-030 da Neoenergia Coelba com Wizard Steps, cálculo de demanda, circuitos e exportação de relatório e memorial de cálculo em PDF.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

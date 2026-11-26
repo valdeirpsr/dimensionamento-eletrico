@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Dimensionamento elétrico · NBR 5410 e DIS-NOR-030</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com/3.4.17"></script>
+<script>
+tailwind.config={theme:{extend:{colors:{p:'#287da7',pd:'#1d6184',s:'#dc9b04',ink:'#172330',mut:'#5b6d7a',ln:'#d3dfe7'},fontFamily:{sans:['Sora','system-ui','sans-serif'],mono:['JetBrains Mono','ui-monospace','monospace']}}}};
+</script>
+<style>
+body{background-color:#eef3f6;background-image:linear-gradient(rgba(40,125,167,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(40,125,167,.07) 1px,transparent 1px);background-size:28px 28px}
+.num{font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums}
+.card{background:#fff;border:1px solid #d3dfe7;border-radius:14px;padding:20px}
+.btn{padding:8px 14px;border-radius:10px;font-size:14px;font-weight:600;border:1px solid transparent;cursor:pointer;white-space:nowrap}
+.bp{background:#287da7;color:#fff}.bp:hover{background:#1d6184}
+.bs{background:#fff;color:#1d6184;border-color:#287da7}.bs:hover{background:#eaf3f8}
+input,select{border:1px solid #c3d3dd;border-radius:8px;padding:6px 8px;background:#fff;width:100%;min-width:0;font-size:14px}
+input[type=checkbox]{width:auto}
+input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid #287da7;outline-offset:2px}
+th{font-size:12px;font-weight:600;color:#5b6d7a;text-align:left;padding:8px;white-space:nowrap}
+td{padding:6px 8px;border-top:1px solid #e1e9ef;font-size:14px;vertical-align:middle}
+.r{text-align:right}
+.tot{background:#fbf1d9;color:#7a5300;border-radius:8px;padding:2px 8px;font-weight:600}
+[x-cloak]{display:none!important}
+#mem{display:none}
+@media print{
+ @page{margin:12mm}
+ body{background:#fff!important}
+ body[data-print] .no-print{display:none!important}
+ body[data-print=rel] .screen .card{display:block!important;border:0;padding:0 0 12px;break-inside:avoid}
+ body[data-print] input,body[data-print] select{border:0;background:none;padding:0;appearance:none}
+ body[data-print=mem] .screen{display:none!important}
+ body[data-print=mem] #mem{display:block!important}
+}
+</style>
+</head>
+<body class="font-sans text-ink antialiased">
+<div x-data="app" x-cloak>
+
+<div class="screen">
+<header class="no-print sticky top-0 z-10 border-b border-ln bg-white/95">
+ <div class="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-3">
+  <div class="flex items-center gap-2 font-semibold"><span class="grid h-8 w-8 place-items-center rounded-lg bg-p text-white"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13 2 4 14h6l-1 8 9-12h-6z"/></svg></span>Dimensionamento</div>
+  <div class="flex gap-2">
+   <button class="btn bs" @click="imprimir('rel')">Exportar relatório (PDF)</button>
+   <button class="btn bp" @click="imprimir('mem')">Exportar memorial (PDF)</button>
+  </div>
+ </div>
+</header>
+
+<section class="no-print mx-auto max-w-5xl px-4 pb-6 pt-10">
+ <p class="text-sm font-semibold text-pd">NBR 5410 · DIS-NOR-030 (Neoenergia Coelba)</p>
+ <h1 class="mt-2 max-w-2xl text-3xl font-bold leading-tight tracking-tight md:text-4xl">Dimensione a instalação elétrica da sua casa em quatro passos</h1>
+ <p class="mt-3 max-w-2xl text-mut">Informe os cômodos e os aparelhos. Demanda e circuitos são calculados automaticamente, e você exporta o relatório e o memorial de cálculo.</p>
+</section>
+
+<nav class="no-print mx-auto max-w-5xl px-4" aria-label="Passos">
+ <ol class="grid grid-cols-2 gap-2 md:grid-cols-4">
+  <template x-for="(s,i) in ['Cômodos','Aparelhos','Demanda','Circuitos']" :key="i">
+   <li><button class="w-full rounded-xl border bg-white p-3 text-left" :class="step===i+1?'border-s ring-2 ring-s/40':'border-ln'" :aria-current="step===i+1?'step':null" @click="step=i+1">
+    <span class="num text-xs" :class="step===i+1?'text-pd':'text-mut'" x-text="'Passo '+(i+1)"></span>
+    <span class="block font-semibold" x-text="s"></span></button></li>
+  </template>
+ </ol>
+</nav>
+
+<main class="mx-auto max-w-5xl space-y-4 px-4 py-6">
+<div class="hidden print:block">
+ <h1 class="text-xl font-bold">Relatório de dimensionamento elétrico</h1>
+ <p class="text-sm" x-text="'Tensão '+V+' V · '+inst+' · PVC · referência B1 · FCA '+n(fca,2)+' · FCT '+n(fct,2)+' · potência máx. por circuito '+n(V*10)+' VA · emitido em '+new Date().toLocaleDateString('pt-BR')"></p>
+</div>
+
+<!-- 1. Cômodos -->
+<section class="card" x-show="step===1">
+ <div class="no-print mb-3 flex flex-wrap items-center justify-between gap-2">
+  <div><h2 class="text-lg font-semibold">1. Cômodos</h2><p class="text-sm text-mut">Tomadas e iluminação mínimas são calculadas pela área e pelo perímetro.</p></div>
+  <button class="btn bs" @click="rooms.push({nome:'',area:0,perim:0,mol:false})">+ Cômodo</button>
+ </div>
+ <div class="overflow-x-auto">
+ <table class="w-full min-w-[760px]">
+  <thead><tr><th>Cômodo</th><th>Área (m²)</th><th>Perímetro (m)</th><th>Molhada</th><th class="r">Tomadas</th><th class="r">TUG (VA)</th><th class="r">Pontos de luz</th><th class="r">Luz (VA)</th><th class="no-print"></th></tr></thead>
+  <tbody>
+   <template x-for="(r,i) in rooms" :key="i">
+    <tr>
+     <td><input x-model="r.nome" aria-label="Nome do cômodo" placeholder="Ex.: Sala"></td>
+     <td><input type="number" min="0" step="0.01" x-model.number="r.area" class="num" aria-label="Área em metros quadrados"></td>
+     <td><input type="number" min="0" step="0.1" x-model.number="r.perim" class="num" aria-label="Perímetro em metros"></td>
+     <td class="text-center"><input type="checkbox" x-model="r.mol" aria-label="Área molhada"></td>
+     <td class="num r" x-text="comodo(r).t"></td>
+     <td class="num r" x-text="n(comodo(r).tug)"></td>
+     <td class="num r">1</td>
+     <td class="num r" x-text="n(comodo(r).luz)"></td>
+     <td class="no-print"><button class="text-mut" @click="rooms.splice(i,1)" aria-label="Remover cômodo">✕</button></td>
+    </tr>
+   </template>
+  </tbody>
+  <tfoot><tr><td class="font-semibold" colspan="4">Total</td><td class="num r font-semibold" x-text="T('t')"></td><td class="num r font-semibold" x-text="n(T('tug'))"></td><td class="num r font-semibold" x-text="nomes().length"></td><td class="num r font-semibold" x-text="n(T('luz'))"></td><td class="no-print"></td></tr></tfoot>
+ </table>
+ </div>
+</section>
+
+<!-- 2. Aparelhos -->
+<section class="card" x-show="step===2">
+ <div class="no-print mb-3 flex flex-wrap items-center justify-between gap-2">
+  <div><h2 class="text-lg font-semibold">2. Aparelhos</h2><p class="text-sm text-mut">Ao escolher um aparelho do catálogo DIS-NOR-030, a tabela e o item são preenchidos. Para outros, escolha a tabela.</p></div>
+  <button class="btn bs" @click="apps.push({nome:'',pot:0,qtd:1})">+ Aparelho</button>
+ </div>
+ <div class="overflow-x-auto">
+ <table class="w-full min-w-[640px]">
+  <thead><tr><th>Aparelho</th><th class="r">Potência (VA)</th><th class="r">Quantidade</th><th>Tabela</th><th>Item</th><th class="no-print"></th></tr></thead>
+  <tbody>
+   <template x-for="(a,i) in apps" :key="i">
+    <tr>
+     <td><input x-model="a.nome" list="catalogo" aria-label="Nome do aparelho" placeholder="Ex.: Chuveiro"></td>
+     <td><input type="number" min="0" step="1" x-model.number="a.pot" class="num r" aria-label="Potência em VA"></td>
+     <td><input type="number" min="0" step="1" x-model.number="a.qtd" class="num r" aria-label="Quantidade"></td>
+     <td class="num">
+      <span x-text="cat(a)?'Tabela '+cat(a).n:(a.tab?'Tabela '+a.tab:'—')"></span>
+      <select x-show="!cat(a)" x-model="a.tab" class="no-print mt-1" aria-label="Tabela DIS-NOR-030">
+       <option value="">Escolha</option><option value="7">Tabela 7</option><option value="8">Tabela 8</option><option value="9">Tabela 9</option><option value="10">Tabela 10</option><option value="12">Tabela 12</option><option value="13">Tabela 13</option>
+      </select>
+     </td>
+     <td class="num" x-text="cat(a)?cat(a).it:'—'"></td>
+     <td class="no-print"><button class="text-mut" @click="apps.splice(i,1)" aria-label="Remover aparelho">✕</button></td>
+    </tr>
+   </template>
+  </tbody>
+ </table>
+ </div>
+ <datalist id="catalogo"></datalist>
+</section>
+
+<!-- 3. Demanda -->
+<section class="card" x-show="step===3">
+ <h2 class="text-lg font-semibold">3. Demanda</h2>
+ <p class="mb-3 text-sm text-mut">Potência de cada grupo multiplicada pelo fator de demanda da DIS-NOR-030.</p>
+ <div class="overflow-x-auto">
+ <table class="w-full min-w-[640px]">
+  <thead><tr><th>Tabela</th><th>Aparelhos</th><th class="r">Soma de potência (VA)</th><th class="r">Quantidade</th><th class="r">Fator</th><th class="r">Potência corrigida (VA)</th></tr></thead>
+  <tbody>
+   <template x-for="d in demanda()" :key="d.n">
+    <tr>
+     <td class="num" x-text="d.n?'Tabela '+d.n:'—'"></td>
+     <td x-text="d.nomes"></td>
+     <td class="num r" x-text="n(d.p)"></td>
+     <td class="num r" x-text="d.q"></td>
+     <td class="num r" x-text="n(d.f,2)"></td>
+     <td class="num r font-semibold" x-text="n(d.c)"></td>
+    </tr>
+   </template>
+  </tbody>
+  <tfoot><tr><td class="font-semibold" colspan="5">Demanda total</td><td class="num r"><span class="tot" x-text="n(totalDem())+' VA'"></span></td></tr></tfoot>
+ </table>
+ </div>
+</section>
+
+<!-- 4. Circuitos -->
+<section class="card" x-show="step===4">
+ <h2 class="text-lg font-semibold">4. Circuitos</h2>
+ <div class="no-print mt-3 grid grid-cols-2 gap-3 md:grid-cols-5">
+  <label class="text-sm">Tensão (V)<input type="number" min="1" x-model.number="V" class="num"></label>
+  <label class="text-sm">Instalação<select x-model="inst"><option>Monofásico</option><option>Bifásico</option><option>Trifásico</option></select></label>
+  <label class="text-sm">FCA<input type="number" min="0" step="0.01" x-model.number="fca" class="num"></label>
+  <label class="text-sm">FCT<input type="number" min="0" step="0.01" x-model.number="fct" class="num"></label>
+  <div class="text-sm">Potência máx. por circuito<div class="num mt-2 font-semibold" x-text="n(V*10)+' VA'"></div></div>
+ </div>
+ <p class="mt-2 text-xs text-mut">Isolação PVC e referência B1, como na planilha original.</p>
+ <div class="mt-4 overflow-x-auto">
+ <table class="w-full min-w-[860px]">
+  <thead><tr><th>Tipo</th><th class="r">Nº</th><th>Cômodo / equipamento</th><th class="r">Potência (VA)</th><th class="r">Ip (A)</th><th class="r">Ic (A)</th><th class="r">Seção (mm²)</th><th class="r">Iz (A)</th><th class="r">Disjuntor</th></tr></thead>
+  <tbody>
+   <template x-for="c in circuitos()" :key="c.n">
+    <tr>
+     <td x-text="c.tipo"></td>
+     <td class="num r" x-text="c.n"></td>
+     <td x-text="c.desc"></td>
+     <td class="num r" x-text="n(c.p)"></td>
+     <td class="num r" x-text="n(c.ip,2)"></td>
+     <td class="num r" x-text="n(c.ic,2)"></td>
+     <td class="num r font-semibold" x-text="n(c.s,1)"></td>
+     <td class="num r" x-text="n(c.iz,1)"></td>
+     <td class="r text-mut">—</td>
+    </tr>
+   </template>
+  </tbody>
+ </table>
+ </div>
+ <p class="mt-3 text-xs text-mut">Os disjuntores não são calculados pela lógica original. Defina-os no projeto.</p>
+</section>
+
+<div class="no-print flex items-center justify-between">
+ <button class="btn bs" x-show="step>1" @click="step--">Voltar</button>
+ <span></span>
+ <button class="btn bp" x-show="step<4" @click="step++">Próximo passo</button>
+</div>
+</main>
+
+<footer class="no-print mx-auto max-w-5xl px-4 pb-10 text-xs text-mut">Ferramenta de apoio ao cálculo. A verificação final e a responsabilidade técnica cabem ao profissional habilitado.</footer>
+</div>
+
+<div id="mem" class="mx-auto max-w-3xl p-2 text-[13px] leading-relaxed">
+ <h1 class="text-xl font-bold">Memorial de cálculo</h1>
+ <p class="mt-1">Base: NBR 5410 (iluminação e tomadas) e DIS-NOR-030 Neoenergia Coelba (fatores de demanda). Tensão <span x-text="V"></span> V · instalação <span x-text="inst"></span> · isolação PVC · referência B1 · FCA <span x-text="n(fca,2)"></span> · FCT <span x-text="n(fct,2)"></span> · emitido em <span x-text="new Date().toLocaleDateString('pt-BR')"></span>.</p>
+
+ <h2 class="mt-4 font-semibold">1. Iluminação</h2>
+ <p>Potência por cômodo: 100 VA até 6 m². Acima disso, soma-se 60 VA a cada 4 m² inteiros excedentes.</p>
+ <template x-for="s in memLuz()" :key="s"><p class="num text-xs" x-text="s"></p></template>
+
+ <h2 class="mt-4 font-semibold">2. Tomadas de uso geral (TUG)</h2>
+ <p>Quantidade: 1 em banheiros, suítes, varandas, toaletes, lavabos, WC ou áreas até 6 m². Nos demais casos, o teto de perímetro ÷ 3,5 m (áreas molhadas) ou ÷ 5 m (áreas secas). Potência: 600 VA nas três primeiras tomadas de áreas molhadas e 100 VA nas demais; 100 VA por tomada em áreas secas.</p>
+ <template x-for="s in memTug()" :key="s"><p class="num text-xs" x-text="s"></p></template>
+
+ <h2 class="mt-4 font-semibold">3. Demanda</h2>
+ <p>Potência corrigida = soma das potências do grupo × fator da tabela. A Tabela 6 usa a potência total do grupo; as demais usam a quantidade de aparelhos.</p>
+ <template x-for="s in memDem()" :key="s"><p class="num text-xs" x-text="s"></p></template>
+
+ <h2 class="mt-4 font-semibold">4. Circuitos</h2>
+ <p>Ip = P ÷ V. Ic = Ip ÷ (FCA × FCT). Seção: menor condutor cuja Iz seja maior que Ic. Iluminação e TUG são divididas em circuitos de potência equilibrada, com limite de V × 10 A por circuito. Cada aparelho de TUE tem circuito próprio.</p>
+ <template x-for="s in memCirc()" :key="s"><p class="num text-xs" x-text="s"></p></template>
+
+ <h2 class="mt-4 font-semibold">5. Observações</h2>
+ <p>Disjuntores não são dimensionados neste memorial. Os valores de condutores seguem a tabela B1 (PVC): 2 condutores carregados para instalações monofásicas e bifásicas, e 3 para trifásicas.</p>
+</div>
+</div>
+
+<script>
+const CAT=[['Chuveiro',7,'b'],['Torneira Elétrica',7,'b'],['Aquecedor de Água',7,'b'],['Ferro Elétrico',7,'b'],['Secadora de Roupa',9,'d'],['Máquina de Lavar',9,'d'],['Lavadora',9,'d'],['Lava-Louças',9,'d'],['Lava Louça',9,'d'],['Micro-ondas',9,'d'],['Forno Elétrico',9,'e'],['Fogão Elétrico',9,'e'],['Ar-Condicionado',12,'f']];
+// Condutores PVC, referência B1: [seção mm², 2 carregados (mono/bi), 3 carregados (tri)]
+const CABO=[[.5,9,8],[.75,11,10],[1,14,12],[1.5,17.5,15.5],[2.5,24,21],[4,32,28],[6,41,36],[10,57,50],[16,76,68],[25,101,89],[35,125,110],[50,151,134],[70,192,171],[95,232,207]];
+const T12=[[10,1],[20,.9],[30,.82],[40,.8],[50,.77]];
+const faixa=(f,v,pad)=>{const x=f.find(([l])=>v<l);return x?x[1]:pad};
+const idx=(a,q,pad)=>a[q-1]??pad;
+// Fatores de demanda por tabela (DIS-NOR-030, conforme Excel.js, com correções)
+const FATOR={
+ 6:p=>faixa([[1000,.86],[2000,.75],[3000,.66],[4000,.59],[5000,.52],[6000,.45],[7000,.4],[8000,.35],[9000,.31],[10000,.27]],p,.24),
+ 7:(p,q)=>idx([1,1,.84,.76,.7,.65,.6,.57,.54,.52,.49,.48,.46,.45,.44,.43,.42,.41,.4,.4,.39,.39,.39],q,.38),
+ 8:(p,q)=>idx([1,.72],q,.38),
+ 9:(p,q)=>faixa([[2,1],[4,.7],[6,.6]],q,.5),
+ 10:(p,q)=>idx([1,.6,.48,.4,.37,.35,.33,.32,.31,.3,.3,.28,.28,.28,.28],q,.26),
+ 12:(p,q)=>faixa(T12,q,.75),
+ 13:(p,q)=>faixa(T12,q,.75)
+};
+const soma=a=>a.reduce((s,x)=>s+x.p,0);
+// Divide itens em circuitos pareando maior com menor até atingir a média de potência
+function dividir(itens,total,max){const n=Math.ceil(total/max),alvo=total/n,f=[...itens],out=[];let par=[];while(f.length){if(!par.length)par.push(f.shift());if(soma(par)<alvo&&f.length)par.push(f.pop());else{out.push(par);par=[]}}if(par.length)out.push(par);return out}
+
+document.addEventListener('alpine:init',()=>{
+ Alpine.data('app',()=>({
+  step:1,V:127,inst:'Trifásico',fca:.57,fct:1,
+  rooms:[
+   {nome:'Sala de Estar',area:30.2,perim:12.8,mol:false},
+   {nome:'Sala de Jantar',area:13.5,perim:15,mol:false},
+   {nome:'Dormitório I',area:11.55,perim:13.6,mol:false},
+   {nome:'Dormitório II',area:13.6,perim:14.8,mol:false},
+   {nome:'Corredor',area:1,perim:4,mol:false},
+   {nome:'Varanda',area:6.3,perim:10.2,mol:false},
+   {nome:'Suíte',area:3.64,perim:8.2,mol:true},
+   {nome:'Banheiro',area:3.64,perim:8.2,mol:true},
+   {nome:'Cozinha',area:7.84,perim:11.2,mol:true}
+  ],
+  apps:[
+   {nome:'Ar-Condicionado',pot:1550,qtd:2},{nome:'Chuveiro',pot:4000,qtd:1},{nome:'Chuveiro',pot:5000,qtd:1},
+   {nome:'Micro-Ondas',pot:1500,qtd:1},{nome:'Forno Elétrico',pot:1500,qtd:1},{nome:'Secadora de Roupa',pot:1500,qtd:1},
+   {nome:'Ferro Elétrico',pot:1000,qtd:2}
+  ],
+  init(){
+   document.getElementById('catalogo').innerHTML=CAT.map(c=>`<option value="${c[0]}">`).join('');
+   addEventListener('afterprint',()=>delete document.body.dataset.print);
+  },
+  n(v,d=0){return (Number(v)||0).toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d})},
+  nomes(){return this.rooms.filter(r=>r.nome.trim())},
+  comodo(r){
+   const a=Number(r.area)||0,p=Number(r.perim)||0,u=/(banheiros?|suite?|suítes?|varandas?|toaletes?|lavabos?|wc)/i.test(r.nome)||a<=6;
+   const t=u?1:Math.ceil(+(p/(r.mol?3.5:5)).toFixed(6));
+   return{u,t,tug:r.mol?Math.min(t,3)*600+Math.max(t-3,0)*100:t*100,luz:100+60*Math.floor(+(Math.max(0,a-6)/4).toFixed(6))};
+  },
+  T(k){return this.nomes().reduce((s,r)=>s+this.comodo(r)[k],0)},
+  cat(a){const k=a.nome.trim().toLowerCase(),c=CAT.find(x=>x[0].toLowerCase()===k);return c?{n:c[1],it:c[2]}:null},
+  tn(a){const c=this.cat(a);return c?c.n:(+a.tab||0)},
+  demanda(){
+   const g={6:{n:6,nomes:['Iluminação','TUG'],p:this.T('luz')+this.T('tug'),q:1}};
+   this.apps.filter(a=>a.nome.trim()).forEach(a=>{const k=this.tn(a),x=g[k]||(g[k]={n:k,nomes:[],p:0,q:0});x.nomes.push(a.nome.trim());x.p+=(Number(a.pot)||0)*(Number(a.qtd)||0);x.q+=Number(a.qtd)||0});
+   return Object.values(g).sort((a,b)=>a.n-b.n).map(x=>{const f=FATOR[x.n]?FATOR[x.n](x.p,x.q):1;return{...x,nomes:x.nomes.join(' + '),f,c:x.p*f}});
+  },
+  totalDem(){return this.demanda().reduce((s,d)=>s+d.c,0)},
+  cab(){const m=this.inst!=='Trifásico';return CABO.map(([s,a,b])=>({s,c:m?a:b}))},
+  linha(tipo,desc,p,min){const ip=+(p/this.V).toFixed(2),ic=+(ip/(this.fca*this.fct)).toFixed(2),k=this.cab().find(x=>x.s>=min&&x.c>ic);return{tipo,desc,p,ip,ic,s:k?k.s:2.5,iz:k?k.c:17.5}},
+  circuitos(){
+   const max=this.V*10,cs=this.nomes().map((r,i)=>({c:r.nome.trim(),m:!!r.mol,i,...this.comodo(r)}));
+   const L=cs.map(x=>({c:x.c,p:x.luz,i:x.i})).sort((a,b)=>b.p-a.p||b.i-a.i);
+   const lum=dividir(L,soma(L),max).map(g=>this.linha('Iluminação',g.map(x=>x.c).join(','),soma(g),1.5));
+   const Tg=cs.map(x=>({c:x.c,m:x.m,t:x.t,p:x.tug,i:x.i})).sort((a,b)=>b.p-a.p||b.i-a.i);
+   const molC=[];let par=[];
+   Tg.filter(x=>x.m).forEach(x=>[...Array(Math.min(x.t,3)).fill(600),...Array(Math.max(x.t-3,0)).fill(100)].forEach(p=>{if(par.length&&!(soma(par)+p<max)){molC.push(par);par=[]}par.push({c:x.c,p})}));
+   if(par.length)molC.push(par);
+   const sec=Tg.filter(x=>!x.m).sort((a,b)=>b.p-a.p).map(x=>({c:x.c,p:x.p}));
+   const tug=[...molC,...dividir(sec,soma(sec),max)].map(g=>this.linha('Tomadas (TUG)',g.map(x=>x.c).join(','),soma(g),2.5));
+   const tue=[];
+   this.apps.filter(a=>a.nome.trim()).forEach(a=>{for(let j=Math.floor(Number(a.qtd)||0);j>0;j--)tue.push(this.linha('Tomada (TUE)',a.nome.trim(),Number(a.pot)||0,2.5))});
+   return[...lum,...tug,...tue].map((c,i)=>({...c,n:i+1}));
+  },
+  memLuz(){return this.nomes().map(r=>{const a=Number(r.area)||0,c=this.comodo(r);return `${r.nome.trim()} (${this.n(a,2)} m²): ${a>6?`100 + 60 × ⌊${this.n(a-6,2)} ÷ 4⌋`:'100'} = ${this.n(c.luz)} VA`})},
+  memTug(){return this.nomes().map(r=>{const c=this.comodo(r),p=Number(r.perim)||0,m=!!r.mol;return `${r.nome.trim()} (${m?'molhada':'seca'}): ${c.u?'1 tomada (uso ou área até 6 m²)':`⌈${this.n(p,2)} ÷ ${m?'3,5':'5'}⌉ = ${c.t}`} → ${m?`${Math.min(c.t,3)} × 600 + ${Math.max(c.t-3,0)} × 100`:`${c.t} × 100`} = ${this.n(c.tug)} VA`})},
+  memDem(){return this.demanda().map(d=>`Tabela ${d.n||'—'} (${d.nomes}; ${d.q} un.): ${this.n(d.p)} VA × ${this.n(d.f,2)} = ${this.n(d.c)} VA`)},
+  memCirc(){return this.circuitos().map(c=>`Nº ${c.n} · ${c.tipo} · ${c.desc}: Ip = ${this.n(c.p)} ÷ ${this.V} = ${this.n(c.ip,2)} A; Ic = ${this.n(c.ip,2)} ÷ (${this.n(this.fca,2)} × ${this.n(this.fct,2)}) = ${this.n(c.ic,2)} A; seção ${this.n(c.s,1)} mm² (Iz = ${this.n(c.iz,1)} A > Ic).`)},
+  imprimir(m){document.body.dataset.print=m;setTimeout(()=>window.print(),80)}
+ }));
+});
+</script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/alpinejs/3.14.1/cdn.min.js"></script>
+</body>
+</html>

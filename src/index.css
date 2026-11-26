@@ -1,0 +1,127 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #287da7;
+  --color-primary-dark: #1d6184;
+  --color-primary-light: #eef6fa;
+  --color-primary-border: #b9d7e7;
+  --color-secondary: #dc9b04;
+  --color-secondary-dark: #b67f03;
+  --color-secondary-light: #fef8eb;
+  --color-ink: #172330;
+  --color-muted: #5b6d7a;
+  --color-border-subtle: #d3dfe7;
+}
+
+:root {
+  --primary: #287da7;
+  --primary-dark: #1d6184;
+  --secondary: #dc9b04;
+}
+
+body {
+  background-color: #f1f5f8;
+  background-image: 
+    linear-gradient(rgba(40, 125, 167, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(40, 125, 167, 0.05) 1px, transparent 1px);
+  background-size: 24px 24px;
+  color: #172330;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
+
+.num {
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+[x-cloak] {
+  display: none !important;
+}
+
+/* Custom scrollbars for tables */
+.custom-scrollbar::-webkit-scrollbar {
+  height: 6px;
+  width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #f1f5f8;
+  border-radius: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #c3d3dd;
+  border-radius: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #9ab4c4;
+}
+
+/* Print Styles */
+@media print {
+  @page {
+    margin: 10mm 12mm;
+    size: A4 portrait;
+  }
+  
+  body {
+    background: #ffffff !important;
+    background-image: none !important;
+    color: #111827 !important;
+    font-size: 11pt;
+  }
+  
+  .no-print {
+    display: none !important;
+  }
+  
+  /* Report Mode */
+  body[data-print="rel"] .screen-app {
+    display: none !important;
+  }
+  body[data-print="rel"] #print-report {
+    display: block !important;
+  }
+  body[data-print="rel"] #print-memorial {
+    display: none !important;
+  }
+  
+  /* Memorial Mode */
+  body[data-print="mem"] .screen-app {
+    display: none !important;
+  }
+  body[data-print="mem"] #print-report {
+    display: none !important;
+  }
+  body[data-print="mem"] #print-memorial {
+    display: block !important;
+  }
+
+  .print-page-break {
+    page-break-before: always;
+    break-before: page;
+  }
+
+  .print-avoid-break {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  table {
+    border-collapse: collapse !important;
+    width: 100% !important;
+  }
+
+  th, td {
+    border: 1px solid #d1d5db !important;
+    padding: 4px 6px !important;
+    font-size: 9pt !important;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  tr {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+}

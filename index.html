@@ -1,0 +1,1520 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Dimensionamento Elétrico NBR 5410 & DIS-NOR-030 | Neoenergia Coelba</title>
+  <meta name="description" content="Dimensionamento elétrico residencial automatizado baseado na NBR 5410 e norma DIS-NOR-030 da Neoenergia Coelba com Wizard Steps, cálculo de demanda, circuitos e exportação de relatório e memorial de cálculo em PDF." />
+  <meta property="og:title" content="Dimensionamento Elétrico NBR 5410 & DIS-NOR-030" />
+  <meta property="og:description" content="Dimensionamento elétrico residencial automatizado conforme NBR 5410 e DIS-NOR-030 Neoenergia Coelba." />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="theme-color" content="#287da7" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="DimElétrico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body class="min-h-screen text-slate-800 antialiased font-sans" x-data="dimensionamentoApp" x-cloak>
+
+  <!-- Notificação Toast -->
+  <div x-show="notification" 
+       x-transition:enter="transition ease-out duration-300"
+       x-transition:enter-start="opacity-0 -translate-y-4"
+       x-transition:enter-end="opacity-100 translate-y-0"
+       x-transition:leave="transition ease-in duration-200"
+       x-transition:leave-start="opacity-100 translate-y-0"
+       x-transition:leave-end="opacity-0 -translate-y-4"
+       class="no-print fixed top-5 right-5 z-50 bg-[#172330] text-white px-5 py-3 rounded-xl shadow-2xl flex items-center gap-3 border border-slate-700 text-sm font-medium">
+    <span class="w-2.5 h-2.5 rounded-full bg-[#dc9b04] animate-pulse"></span>
+    <span x-text="notification"></span>
+  </div>
+
+  <!-- Indicador de Modo Off-line -->
+  <div x-show="!isOnline"
+       x-transition:enter="transition ease-out duration-300"
+       x-transition:enter-start="opacity-0 translate-y-4"
+       x-transition:enter-end="opacity-100 translate-y-0"
+       x-transition:leave="transition ease-in duration-200"
+       x-transition:leave-start="opacity-100 translate-y-0"
+       x-transition:leave-end="opacity-0 translate-y-4"
+       class="no-print fixed bottom-4 left-4 z-50 flex items-center gap-2 rounded-lg bg-[#dc9b04] px-3.5 py-2 text-xs font-semibold text-white shadow-lg border border-[#b67f03]">
+    <span class="h-2 w-2 rounded-full bg-white animate-pulse"></span>
+    <span>Modo Off-line — Dados em cache local</span>
+  </div>
+
+  <!-- APLICAÇÃO VISÍVEL EM TELA -->
+  <div class="screen-app flex flex-col min-h-screen">
+
+    <!-- Top Navigation Header -->
+    <header class="no-print sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-xs">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-wrap items-center justify-between gap-4">
+        
+        <!-- Brand -->
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-[#287da7] to-[#1d6184] text-white flex items-center justify-center shadow-md shadow-[#287da7]/25">
+            <svg class="w-6 h-6 text-[#dc9b04]" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M13 2L3 14H12L11 22L21 10H12L13 2Z" />
+            </svg>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="font-extrabold text-lg text-slate-900 tracking-tight">Dimensiona<span class="text-[#287da7]">Elétrico</span></span>
+              <span class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-[#eef6fa] text-[#1d6184] border border-[#b9d7e7]">NBR 5410 & DIS-NOR-030</span>
+            </div>
+            <p class="text-xs text-slate-500 font-medium">Neoenergia Coelba • Projeto Elétrico Residencial</p>
+          </div>
+        </div>
+
+        <!-- Quick actions -->
+        <div class="flex items-center flex-wrap gap-2">
+          <button @click="showProjetoModal = true" class="px-3.5 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg border border-slate-300 transition-colors flex items-center gap-1.5" title="Editar identificação do projeto para ART/RRT">
+            <svg class="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+            <span>Dados da Obra</span>
+          </button>
+
+          <button @click="carregarExemplo()" class="px-3 py-2 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 rounded-lg border border-slate-300 shadow-xs transition-colors flex items-center gap-1.5">
+            <svg class="w-3.5 h-3.5 text-[#287da7]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            <span>Exemplo Planilha</span>
+          </button>
+
+          <button @click="limparDados()" class="px-3 py-2 text-xs font-medium text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg border border-transparent transition-colors">
+            Limpar
+          </button>
+
+          <!-- Botão de Instalação PWA (oculto quando já instalado em standalone) -->
+          <button x-show="!isInstalled && (isInstallable || isIOS)"
+                  @click="instalarPWA()"
+                  class="px-3.5 py-2 text-xs font-bold text-[#172330] bg-[#fef8eb] hover:bg-[#dc9b04]/20 rounded-lg border border-[#dc9b04] transition-colors flex items-center gap-1.5 shadow-xs"
+                  title="Instalar aplicativo para uso 100% off-line">
+            <svg class="w-4 h-4 text-[#b67f03]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            <span x-text="isIOS && !isInstallable ? 'Instalar no iOS' : 'Instalar App'"></span>
+          </button>
+
+          <div class="h-6 w-px bg-slate-200 mx-1 hidden sm:block"></div>
+
+          <!-- Input oculto para importação de JSON/JSONC -->
+          <input type="file"
+                 x-ref="importJsonInput"
+                 accept=".json,.jsonc,application/json"
+                 @change="importarJSON($event)"
+                 class="hidden" />
+
+          <!-- Dropdown: Importar -->
+          <div class="relative" @click.outside="openImportMenu = false">
+            <button type="button"
+                    @click="openImportMenu = !openImportMenu; openExportMenu = false"
+                    class="px-3.5 py-2 text-xs font-bold text-[#1d6184] bg-white hover:bg-[#eef6fa] border-2 border-[#287da7] rounded-xl shadow-xs transition-all flex items-center gap-1.5"
+                    title="Importar dados salvos do projeto">
+              <svg class="w-4 h-4 text-[#287da7]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+              </svg>
+              <span>Importar</span>
+              <svg class="w-3.5 h-3.5 text-[#287da7] transition-transform" :class="openImportMenu ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+
+            <div x-show="openImportMenu"
+                 x-transition:enter="transition ease-out duration-150"
+                 x-transition:enter-start="opacity-0 scale-95 -translate-y-1"
+                 x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                 x-transition:leave="transition ease-in duration-100"
+                 x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+                 x-transition:leave-end="opacity-0 scale-95 -translate-y-1"
+                 class="absolute right-0 mt-2 w-56 rounded-xl bg-white shadow-xl border border-slate-200 py-1.5 z-50">
+              <button type="button"
+                      @click="$refs.importJsonInput.click(); openImportMenu = false"
+                      class="w-full px-3.5 py-2.5 text-left text-xs hover:bg-[#eef6fa] flex items-center justify-between gap-2 transition-colors">
+                <div class="flex items-center gap-2.5">
+                  <span class="w-7 h-7 rounded-lg bg-[#eef6fa] text-[#1d6184] flex items-center justify-center font-mono font-bold text-[10px] border border-[#b9d7e7]">{}</span>
+                  <div>
+                    <span class="font-bold text-slate-800 block">JSON</span>
+                    <span class="text-[10px] text-slate-500">Carregar arquivo .json / .jsonc</span>
+                  </div>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          <!-- Dropdown: Exportar (substitui Atalhos ? e agrupa PDFs + JSONC) -->
+          <div class="relative" @click.outside="openExportMenu = false">
+            <button type="button"
+                    @click="openExportMenu = !openExportMenu; openImportMenu = false"
+                    class="px-4 py-2 text-xs font-bold text-white bg-gradient-to-r from-[#287da7] to-[#1d6184] hover:from-[#1d6184] hover:to-[#174e6b] rounded-xl shadow-md shadow-[#287da7]/25 transition-all flex items-center gap-1.5 hover:shadow-lg"
+                    title="Exportar relatório, memorial ou planilha em JSONC">
+              <svg class="w-4 h-4 text-[#dc9b04]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              <span>Exportar</span>
+              <svg class="w-3.5 h-3.5 text-white/90 transition-transform" :class="openExportMenu ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+
+            <div x-show="openExportMenu"
+                 x-transition:enter="transition ease-out duration-150"
+                 x-transition:enter-start="opacity-0 scale-95 -translate-y-1"
+                 x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                 x-transition:leave="transition ease-in duration-100"
+                 x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+                 x-transition:leave-end="opacity-0 scale-95 -translate-y-1"
+                 class="absolute right-0 mt-2 w-64 rounded-xl bg-white shadow-xl border border-slate-200 py-1.5 z-50">
+              <button type="button"
+                      @click="imprimir('rel'); openExportMenu = false"
+                      class="w-full px-3.5 py-2.5 text-left text-xs hover:bg-[#eef6fa] flex items-center justify-between gap-2 transition-colors">
+                <div class="flex items-center gap-2.5">
+                  <svg class="w-4 h-4 text-[#287da7] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                  </svg>
+                  <div>
+                    <span class="font-bold text-slate-800 block">Relatório (PDF)</span>
+                    <span class="text-[10px] text-slate-500">Quadro resumo e circuitos</span>
+                  </div>
+                </div>
+                <kbd class="font-mono text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded border border-slate-200">Alt+R</kbd>
+              </button>
+
+              <button type="button"
+                      @click="imprimir('mem'); openExportMenu = false"
+                      class="w-full px-3.5 py-2.5 text-left text-xs hover:bg-[#eef6fa] flex items-center justify-between gap-2 transition-colors">
+                <div class="flex items-center gap-2.5">
+                  <svg class="w-4 h-4 text-[#dc9b04] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <div>
+                    <span class="font-bold text-slate-800 block">Memorial (PDF)</span>
+                    <span class="text-[10px] text-slate-500">Memória de cálculo completa</span>
+                  </div>
+                </div>
+                <kbd class="font-mono text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded border border-slate-200">Alt+M</kbd>
+              </button>
+
+              <div class="my-1 border-t border-slate-200"></div>
+
+              <button type="button"
+                      @click="exportarJSONC(); openExportMenu = false"
+                      class="w-full px-3.5 py-2.5 text-left text-xs hover:bg-[#fef8eb] flex items-center justify-between gap-2 transition-colors">
+                <div class="flex items-center gap-2.5">
+                  <span class="w-4 h-4 rounded bg-[#fef8eb] text-[#b67f03] flex items-center justify-center font-mono font-bold text-[10px] border border-[#dc9b04]/40 shrink-0">{}</span>
+                  <div>
+                    <span class="font-bold text-slate-800 block">Planilha (JSONC)</span>
+                    <span class="text-[10px] text-slate-500">Salvar dados editáveis (.jsonc)</span>
+                  </div>
+                </div>
+                <span class="font-mono text-[10px] text-[#b67f03] font-bold">.jsonc</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </header>
+
+    <!-- Hero / Headline -->
+    <section class="no-print bg-gradient-to-b from-white to-slate-50 border-b border-slate-200 py-8 px-4 sm:px-6 lg:px-8">
+      <div class="max-w-7xl mx-auto">
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+          <div>
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#fef8eb] border border-[#dc9b04]/30 text-[#b67f03] text-xs font-semibold mb-3">
+              <svg class="w-3.5 h-3.5 text-[#dc9b04]" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd" />
+              </svg>
+              Cálculo Automatizado de Baixa Tensão
+            </div>
+            <h1 class="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-slate-900 tracking-tight leading-tight">
+              Dimensionamento Elétrico Residencial
+            </h1>
+            <p class="mt-2 text-sm sm:text-base text-slate-600 max-w-3xl leading-relaxed">
+              Preencha os dados no assistente passo a passo. O motor calcula automaticamente as quantidades mínimas de tomadas (TUG), iluminação pela área/perímetro conforme a <strong>NBR 5410</strong>, aplica as curvas de demanda da norma <strong>DIS-NOR-030 (Neoenergia Coelba)</strong> e dimensiona os circuitos terminais e condutores.
+            </p>
+          </div>
+
+          <!-- Quick Stats Panel -->
+          <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-sm flex flex-wrap gap-4 sm:gap-6 min-w-[280px] lg:min-w-[420px]">
+            <div class="flex-1 min-w-[90px]">
+              <span class="block text-xs font-semibold uppercase tracking-wider text-slate-400">Potência Total</span>
+              <span class="num text-xl sm:text-2xl font-bold text-slate-900" x-text="n(potenciaInstaladaTotal()) + ' VA'"></span>
+              <span class="block text-[11px] text-slate-500 mt-0.5" x-text="n(potenciaInstaladaTotal() / 1000, 2) + ' kVA'"></span>
+            </div>
+            <div class="w-px bg-slate-200"></div>
+            <div class="flex-1 min-w-[90px]">
+              <span class="block text-xs font-semibold uppercase tracking-wider text-[#b67f03]">Demanda Prevista</span>
+              <span class="num text-xl sm:text-2xl font-extrabold text-[#287da7]" x-text="n(demandaTotal()) + ' VA'"></span>
+              <span class="block text-[11px] font-semibold text-[#b67f03] mt-0.5" x-text="n(demandaTotal() / 1000, 2) + ' kVA'"></span>
+            </div>
+            <div class="w-px bg-slate-200"></div>
+            <div class="flex-1 min-w-[90px]">
+              <span class="block text-xs font-semibold uppercase tracking-wider text-slate-400">Circuitos</span>
+              <span class="num text-xl sm:text-2xl font-bold text-slate-800" x-text="circuitosCalculados().length"></span>
+              <span class="block text-[11px] text-slate-500 mt-0.5" x-text="cValidos().length + ' cômodos'"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Wizard Step Tabs -->
+        <div class="mt-8">
+          <nav aria-label="Progresso do Dimensionamento" class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            
+            <!-- Step 1 Tab -->
+            <button @click="step = 1" 
+                    title="Atalho: Alt + 1"
+                    :class="step === 1 ? 'border-[#287da7] bg-white ring-2 ring-[#287da7]/20 shadow-md' : 'border-slate-200 bg-white/70 hover:bg-white text-slate-600'"
+                    class="rounded-xl p-3.5 sm:p-4 text-left border transition-all relative overflow-hidden group">
+              <div class="flex items-center justify-between">
+                <span :class="step === 1 ? 'bg-[#287da7] text-white' : 'bg-slate-100 text-slate-600'" 
+                      class="w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center transition-colors">1</span>
+                <div class="flex items-center gap-1.5">
+                  <span class="text-[11px] font-semibold uppercase tracking-wider" :class="step === 1 ? 'text-[#287da7]' : 'text-slate-400'">NBR 5410</span>
+                  <kbd class="font-mono text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 border border-slate-200">Alt+1</kbd>
+                </div>
+              </div>
+              <span class="block mt-2 font-bold text-sm sm:text-base text-slate-900">Cômodos & Cargas</span>
+              <span class="block text-xs text-slate-500 mt-0.5 truncate" x-text="cValidos().length + ' cômodos • ' + totalTomadas() + ' TUGs'"></span>
+              <div x-show="step === 1" class="absolute bottom-0 left-0 right-0 h-1 bg-[#287da7]"></div>
+            </button>
+
+            <!-- Step 2 Tab -->
+            <button @click="step = 2" 
+                    title="Atalho: Alt + 2"
+                    :class="step === 2 ? 'border-[#287da7] bg-white ring-2 ring-[#287da7]/20 shadow-md' : 'border-slate-200 bg-white/70 hover:bg-white text-slate-600'"
+                    class="rounded-xl p-3.5 sm:p-4 text-left border transition-all relative overflow-hidden group">
+              <div class="flex items-center justify-between">
+                <span :class="step === 2 ? 'bg-[#287da7] text-white' : 'bg-slate-100 text-slate-600'" 
+                      class="w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center transition-colors">2</span>
+                <div class="flex items-center gap-1.5">
+                  <span class="text-[11px] font-semibold uppercase tracking-wider" :class="step === 2 ? 'text-[#287da7]' : 'text-slate-400'">DIS-NOR-030</span>
+                  <kbd class="font-mono text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 border border-slate-200">Alt+2</kbd>
+                </div>
+              </div>
+              <span class="block mt-2 font-bold text-sm sm:text-base text-slate-900">Aparelhos (TUE)</span>
+              <span class="block text-xs text-slate-500 mt-0.5 truncate" x-text="apps.filter(a => a.nome.trim()).length + ' aparelhos cadastrados'"></span>
+              <div x-show="step === 2" class="absolute bottom-0 left-0 right-0 h-1 bg-[#287da7]"></div>
+            </button>
+
+            <!-- Step 3 Tab -->
+            <button @click="step = 3" 
+                    title="Atalho: Alt + 3"
+                    :class="step === 3 ? 'border-[#287da7] bg-white ring-2 ring-[#287da7]/20 shadow-md' : 'border-slate-200 bg-white/70 hover:bg-white text-slate-600'"
+                    class="rounded-xl p-3.5 sm:p-4 text-left border transition-all relative overflow-hidden group">
+              <div class="flex items-center justify-between">
+                <span :class="step === 3 ? 'bg-[#287da7] text-white' : 'bg-slate-100 text-slate-600'" 
+                      class="w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center transition-colors">3</span>
+                <div class="flex items-center gap-1.5">
+                  <span class="text-[11px] font-semibold uppercase tracking-wider" :class="step === 3 ? 'text-[#287da7]' : 'text-slate-400'">Fatores</span>
+                  <kbd class="font-mono text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 border border-slate-200">Alt+3</kbd>
+                </div>
+              </div>
+              <span class="block mt-2 font-bold text-sm sm:text-base text-slate-900">Cálculo de Demanda</span>
+              <span class="block text-xs text-slate-500 mt-0.5 truncate" x-text="n(demandaTotal()) + ' VA corrigidos'"></span>
+              <div x-show="step === 3" class="absolute bottom-0 left-0 right-0 h-1 bg-[#287da7]"></div>
+            </button>
+
+            <!-- Step 4 Tab -->
+            <button @click="step = 4" 
+                    title="Atalho: Alt + 4"
+                    :class="step === 4 ? 'border-[#287da7] bg-white ring-2 ring-[#287da7]/20 shadow-md' : 'border-slate-200 bg-white/70 hover:bg-white text-slate-600'"
+                    class="rounded-xl p-3.5 sm:p-4 text-left border transition-all relative overflow-hidden group">
+              <div class="flex items-center justify-between">
+                <span :class="step === 4 ? 'bg-[#287da7] text-white' : 'bg-slate-100 text-slate-600'" 
+                      class="w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center transition-colors">4</span>
+                <div class="flex items-center gap-1.5">
+                  <span class="text-[11px] font-semibold uppercase tracking-wider" :class="step === 4 ? 'text-[#287da7]' : 'text-slate-400'">Quadro Final</span>
+                  <kbd class="font-mono text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 border border-slate-200">Alt+4</kbd>
+                </div>
+              </div>
+              <span class="block mt-2 font-bold text-sm sm:text-base text-slate-900">Divisão de Circuitos</span>
+              <span class="block text-xs text-slate-500 mt-0.5 truncate" x-text="circuitosCalculados().length + ' circuitos • Condutores B1'"></span>
+              <div x-show="step === 4" class="absolute bottom-0 left-0 right-0 h-1 bg-[#287da7]"></div>
+            </button>
+
+          </nav>
+        </div>
+      </div>
+    </section>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+      <!-- ========================================== -->
+      <!-- PASSO 1: CÔMODOS (NBR 5410) -->
+      <!-- ========================================== -->
+      <section x-show="step === 1" class="space-y-6">
+        
+        <!-- Header & Instructions -->
+        <div class="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="px-2.5 py-1 rounded-md bg-[#eef6fa] text-[#1d6184] text-xs font-bold">Passo 1 de 4</span>
+              <h2 class="text-xl font-bold text-slate-900">Levantamento de Cômodos e Cargas Mínimas</h2>
+            </div>
+            <p class="text-sm text-slate-600 mt-1">
+              Informe a área (m²), perímetro (m) e assinale se o cômodo é área molhada/molhável (cozinha, copa, banheiro, lavanderia). 
+              O sistema calcula em tempo real as <strong>tomadas mínimas (TUG)</strong>, <strong>pontos de luz</strong> e as <strong>potências mínimas normatizadas</strong> (NBR 5410:2004 item 9.5.2).
+            </p>
+          </div>
+          <div class="flex items-center gap-2 shrink-0">
+            <button @click="addComodo()" 
+                    title="Adicionar Cômodo (Atalho: Alt + C)" 
+                    class="px-4 py-2.5 bg-[#287da7] hover:bg-[#1d6184] text-white text-sm font-semibold rounded-xl shadow-xs transition-colors flex items-center gap-2">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+              </svg>
+              <span>Adicionar Cômodo</span>
+              <kbd class="ml-1 text-[10px] bg-white/20 text-white font-mono px-1.5 py-0.5 rounded border border-white/30">Alt+C</kbd>
+            </button>
+          </div>
+        </div>
+
+        <!-- Dica de Produtividade com TAB -->
+        <div class="p-3 bg-blue-50/70 border border-blue-200/80 rounded-xl flex items-center justify-between text-xs text-blue-900">
+          <div class="flex items-center gap-2">
+            <span class="w-5 h-5 rounded-full bg-[#287da7] text-white flex items-center justify-center font-bold text-[10px]">⌨️</span>
+            <span><strong>Dica rápida de digitação:</strong> Ao preencher o campo <strong>Perímetro (m)</strong>, pressione <kbd class="px-1.5 py-0.5 bg-white border border-blue-300 rounded font-mono font-bold text-slate-800 shadow-xs">TAB</kbd> para adicionar o próximo cômodo automaticamente!</span>
+          </div>
+          <span class="text-[11px] font-mono text-slate-500 hidden sm:inline-block">Atalho: Alt + C</span>
+        </div>
+
+        <!-- Tabela de Cômodos -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+          <div class="overflow-x-auto custom-scrollbar">
+            <table class="w-full text-left text-sm">
+              <thead class="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                <tr>
+                  <th class="py-3.5 px-4 w-12 text-center">#</th>
+                  <th class="py-3.5 px-4 min-w-[200px]">Nome do Cômodo</th>
+                  <th class="py-3.5 px-4 w-32">Área (m²)</th>
+                  <th class="py-3.5 px-4 w-32">Perímetro (m)</th>
+                  <th class="py-3.5 px-4 w-28 text-center">Área Molhada</th>
+                  <th class="py-3.5 px-4 w-28 text-right bg-blue-50/50 text-[#1d6184]">Mín. Tomadas</th>
+                  <th class="py-3.5 px-4 w-32 text-right bg-blue-50/50 text-[#1d6184]">Carga TUG (VA)</th>
+                  <th class="py-3.5 px-4 w-28 text-right bg-amber-50/50 text-[#b67f03]">Pontos Luz</th>
+                  <th class="py-3.5 px-4 w-32 text-right bg-amber-50/50 text-[#b67f03]">Carga Luz (VA)</th>
+                  <th class="py-3.5 px-3 w-12 text-center">Ações</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-200 text-slate-700">
+                <template x-for="(r, idx) in rooms" :key="idx">
+                  <tr class="hover:bg-slate-50/80 transition-colors">
+                    <td class="py-3 px-4 text-center text-xs font-mono text-slate-400" x-text="idx + 1"></td>
+                    <td class="py-3 px-4">
+                      <input type="text" x-model="r.nome" placeholder="Ex: Sala, Cozinha, Quarto..." 
+                             class="room-nome-input w-full px-3 py-1.5 text-sm bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#287da7] focus:border-[#287da7]">
+                    </td>
+                    <td class="py-3 px-4">
+                      <div class="relative">
+                        <input type="number" step="0.01" min="0" x-model.number="r.area" 
+                               class="num w-full px-3 py-1.5 text-sm bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#287da7] focus:border-[#287da7]">
+                      </div>
+                    </td>
+                    <td class="py-3 px-4">
+                      <div class="relative">
+                        <input type="number" step="0.01" min="0" x-model.number="r.perim" 
+                               @keydown.tab="onPerimTab($event)"
+                               class="room-perim-input num w-full px-3 py-1.5 text-sm bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#287da7] focus:border-[#287da7]">
+                      </div>
+                    </td>
+                    <td class="py-3 px-4 text-center">
+                      <label class="inline-flex items-center cursor-pointer">
+                        <input type="checkbox" x-model="r.mol" class="sr-only peer">
+                        <div class="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#287da7] relative"></div>
+                      </label>
+                    </td>
+                    <!-- Calculados -->
+                    <td class="py-3 px-4 text-right num font-semibold text-slate-800 bg-blue-50/30" x-text="comodoCalc(r).tomadas"></td>
+                    <td class="py-3 px-4 text-right num font-bold text-[#1d6184] bg-blue-50/30" x-text="n(comodoCalc(r).tugVa)"></td>
+                    <td class="py-3 px-4 text-right num font-semibold text-slate-800 bg-amber-50/30" x-text="comodoCalc(r).pontosLuz"></td>
+                    <td class="py-3 px-4 text-right num font-bold text-[#b67f03] bg-amber-50/30" x-text="n(comodoCalc(r).luzVa)"></td>
+                    <td class="py-3 px-3 text-center">
+                      <button @click="removeComodo(idx)" class="p-1 text-slate-400 hover:text-rose-600 rounded-md hover:bg-rose-50 transition-colors" title="Remover cômodo">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+              <tfoot class="bg-slate-100/80 font-semibold border-t-2 border-slate-200 text-slate-900">
+                <tr>
+                  <td class="py-3.5 px-4 text-center font-bold" colspan="2">Totais da Edificação</td>
+                  <td class="py-3.5 px-4 num text-slate-900 font-bold" x-text="n(totalArea(), 2) + ' m²'"></td>
+                  <td class="py-3.5 px-4 num text-slate-900 font-bold" x-text="n(totalPerim(), 2) + ' m'"></td>
+                  <td></td>
+                  <td class="py-3.5 px-4 text-right num font-extrabold text-[#1d6184]" x-text="totalTomadas()"></td>
+                  <td class="py-3.5 px-4 text-right num font-extrabold text-[#1d6184]" x-text="n(totalTugVa()) + ' VA'"></td>
+                  <td class="py-3.5 px-4 text-right num font-extrabold text-[#b67f03]" x-text="totalPontosLuz()"></td>
+                  <td class="py-3.5 px-4 text-right num font-extrabold text-[#b67f03]" x-text="n(totalLuzVa()) + ' VA'"></td>
+                  <td></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+
+        <!-- Explicação NBR 5410 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="p-4 rounded-xl bg-blue-50 border border-blue-200 text-xs text-blue-900 leading-relaxed">
+            <h4 class="font-bold text-sm mb-1 text-[#1d6184] flex items-center gap-1.5">
+              <svg class="w-4 h-4 text-[#287da7]" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" /></svg>
+              Critérios de Tomadas TUG (NBR 5410 itens 9.5.2.2.1 e 9.5.2.2.2)
+            </h4>
+            <p><strong>Quantidade mínima (item 9.5.2.2.1):</strong> <strong>a)</strong> Banheiros e análogos: 1 tomada; <strong>b)</strong> Cozinhas, copas, áreas de serviço, lavanderias e locais análogos: &lceil;Perímetro &divide; 3,5&rceil; (independente da área); <strong>c)</strong> Varandas: 1 tomada; <strong>d)</strong> Salas e dormitórios: &lceil;Perímetro &divide; 5&rceil; (independente da área); <strong>e)</strong> Demais cômodos: 1 tomada se área &le; 6 m² (incl. &le; 2,25 m²) ou &lceil;Perímetro &divide; 5&rceil; se área &gt; 6 m².</p>
+            <p class="mt-1"><strong>Potência das tomadas (item 9.5.2.2.2 alínea 'a'):</strong> Em áreas molhadas, atribui-se 600 VA por tomada (e 100 VA excedentes), considerando cada ambiente separadamente: até <strong>3 tomadas de 600 VA</strong> se o total no conjunto de áreas molhadas for &le; 6 pontos, ou até <strong>2 tomadas de 600 VA</strong> se o total for &gt; 6 pontos. Em áreas secas: 100 VA por tomada.</p>
+          </div>
+          <div class="p-4 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 leading-relaxed">
+            <h4 class="font-bold text-sm mb-1 text-[#b67f03] flex items-center gap-1.5">
+              <svg class="w-4 h-4 text-[#dc9b04]" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" /></svg>
+              Critérios de Iluminação (NBR 5410 item 9.5.1)
+            </h4>
+            <p><strong>Área &le; 6 m²:</strong> Carga mínima de 100 VA no teto.</p>
+            <p class="mt-1"><strong>Área &gt; 6 m²:</strong> Mínimo de 100 VA para os primeiros 6 m², acrescido de 60 VA para cada aumento de 4 m² inteiros excedentes.</p>
+            <p class="mt-1">Fórmula: <code class="num font-bold">100 + 60 × &lfloor;(Área - 6) / 4&rfloor;</code>.</p>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ========================================== -->
+      <!-- PASSO 2: APARELHOS TUE (DIS-NOR-030) -->
+      <!-- ========================================== -->
+      <section x-show="step === 2" class="space-y-6">
+        
+        <!-- Header -->
+        <div class="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="px-2.5 py-1 rounded-md bg-[#eef6fa] text-[#1d6184] text-xs font-bold">Passo 2 de 4</span>
+              <h2 class="text-xl font-bold text-slate-900">Aparelhos e Tomadas de Uso Específico (TUE)</h2>
+            </div>
+            <p class="text-sm text-slate-600 mt-1">
+              Cadastre chuveiros, ar-condicionados, fornos, micro-ondas e outros aparelhos. Ao digitar ou selecionar do catálogo, a tabela normativa da <strong>DIS-NOR-030 (Neoenergia Coelba)</strong> e seu item correspondente são identificados automaticamente.
+            </p>
+          </div>
+          <div class="flex items-center gap-2 shrink-0">
+            <button @click="addApp()" 
+                    title="Adicionar Aparelho (Atalho: Alt + A)" 
+                    class="px-4 py-2.5 bg-[#287da7] hover:bg-[#1d6184] text-white text-sm font-semibold rounded-xl shadow-xs transition-colors flex items-center gap-2">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+              </svg>
+              <span>Adicionar Aparelho</span>
+              <kbd class="ml-1 text-[10px] bg-white/20 text-white font-mono px-1.5 py-0.5 rounded border border-white/30">Alt+A</kbd>
+            </button>
+          </div>
+        </div>
+
+        <!-- Dica de Produtividade com TAB -->
+        <div class="p-3 bg-amber-50/70 border border-amber-200/80 rounded-xl flex items-center justify-between text-xs text-amber-900">
+          <div class="flex items-center gap-2">
+            <span class="w-5 h-5 rounded-full bg-[#dc9b04] text-white flex items-center justify-center font-bold text-[10px]">⌨️</span>
+            <span><strong>Dica rápida de digitação:</strong> Ao preencher o campo <strong>Quantidade</strong>, pressione <kbd class="px-1.5 py-0.5 bg-white border border-amber-300 rounded font-mono font-bold text-slate-800 shadow-xs">TAB</kbd> para adicionar o próximo aparelho automaticamente!</span>
+          </div>
+          <span class="text-[11px] font-mono text-slate-500 hidden sm:inline-block">Atalho: Alt + A</span>
+        </div>
+
+        <!-- Quick Suggestions Badges -->
+        <div class="bg-slate-100/80 p-3.5 rounded-xl border border-slate-200 flex flex-wrap items-center gap-2 text-xs">
+          <span class="font-bold text-slate-600">Inserir rápido do catálogo:</span>
+          <button @click="apps.push({nome:'Chuveiro', pot:5500, qtd:1, tab:''})" class="px-2.5 py-1 bg-white hover:bg-slate-200 border border-slate-300 rounded-lg text-slate-700 font-medium transition-colors">+ Chuveiro 5500VA</button>
+          <button @click="apps.push({nome:'Ar-Condicionado', pot:1550, qtd:1, tab:''})" class="px-2.5 py-1 bg-white hover:bg-slate-200 border border-slate-300 rounded-lg text-slate-700 font-medium transition-colors">+ Ar-Condicionado 1550VA</button>
+          <button @click="apps.push({nome:'Micro-ondas', pot:1400, qtd:1, tab:''})" class="px-2.5 py-1 bg-white hover:bg-slate-200 border border-slate-300 rounded-lg text-slate-700 font-medium transition-colors">+ Micro-ondas 1400VA</button>
+          <button @click="apps.push({nome:'Forno Elétrico', pot:2000, qtd:1, tab:''})" class="px-2.5 py-1 bg-white hover:bg-slate-200 border border-slate-300 rounded-lg text-slate-700 font-medium transition-colors">+ Forno Elétrico 2000VA</button>
+          <button @click="apps.push({nome:'Fogão Elétrico / Cooktop', pot:6000, qtd:1, tab:''})" class="px-2.5 py-1 bg-white hover:bg-slate-200 border border-slate-300 rounded-lg text-slate-700 font-medium transition-colors">+ Cooktop 6000VA</button>
+          <button @click="apps.push({nome:'Máquina de Lavar', pot:1000, qtd:1, tab:''})" class="px-2.5 py-1 bg-white hover:bg-slate-200 border border-slate-300 rounded-lg text-slate-700 font-medium transition-colors">+ Lavadora 1000VA</button>
+        </div>
+
+        <!-- Tabela de Aparelhos -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+          <div class="overflow-x-auto custom-scrollbar">
+            <table class="w-full text-left text-sm">
+              <thead class="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                <tr>
+                  <th class="py-3.5 px-4 w-12 text-center">#</th>
+                  <th class="py-3.5 px-4 min-w-[240px]">Nome do Aparelho</th>
+                  <th class="py-3.5 px-4 w-40 text-right">Potência Unit. (VA ou W)</th>
+                  <th class="py-3.5 px-4 w-32 text-center">Quantidade</th>
+                  <th class="py-3.5 px-4 w-40 text-right bg-slate-50/50">Potência Total (VA)</th>
+                  <th class="py-3.5 px-4 w-48">Tabela DIS-NOR-030</th>
+                  <th class="py-3.5 px-4 w-24 text-center">Item</th>
+                  <th class="py-3.5 px-3 w-12 text-center">Ações</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-200 text-slate-700">
+                <template x-for="(a, idx) in apps" :key="idx">
+                  <tr class="hover:bg-slate-50/80 transition-colors">
+                    <td class="py-3 px-4 text-center text-xs font-mono text-slate-400" x-text="idx + 1"></td>
+                    <td class="py-3 px-4">
+                      <div class="relative">
+                        <input type="text" x-model="a.nome" list="catalogo-aparelhos" 
+                               placeholder="Digite ou escolha da lista..." 
+                               class="app-nome-input w-full px-3 py-1.5 text-sm bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#287da7] focus:border-[#287da7]">
+                      </div>
+                    </td>
+                    <td class="py-3 px-4 text-right">
+                      <input type="number" step="10" min="0" x-model.number="a.pot" 
+                             class="num w-full px-3 py-1.5 text-right text-sm bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#287da7] focus:border-[#287da7]">
+                    </td>
+                    <td class="py-3 px-4 text-center">
+                      <input type="number" step="1" min="1" x-model.number="a.qtd" 
+                             @keydown.tab="onQtdTab($event)"
+                             class="app-qtd-input num w-24 mx-auto text-center px-2 py-1.5 text-sm bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#287da7] focus:border-[#287da7]">
+                    </td>
+                    <td class="py-3 px-4 text-right num font-bold text-slate-900 bg-slate-50/40" x-text="n((Number(a.pot)||0) * (Number(a.qtd)||0))"></td>
+                    <td class="py-3 px-4">
+                      <div class="flex items-center gap-2">
+                        <template x-if="catalogar(a)">
+                          <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-[#eef6fa] text-[#1d6184] font-semibold text-xs border border-[#b9d7e7]" 
+                                x-text="'Tabela ' + catalogar(a).n"></span>
+                        </template>
+                        <template x-if="!catalogar(a)">
+                          <select x-model="a.tab" class="w-full px-2.5 py-1 text-xs border border-amber-300 bg-amber-50 rounded-lg text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#287da7]">
+                            <option value="">Selecione Tabela...</option>
+                            <option value="7">Tabela 7 (Chuveiros, aquecedores, ferros)</option>
+                            <option value="8">Tabela 8 (Aquecedor central/boiler)</option>
+                            <option value="9">Tabela 9 (Secadoras, lavadoras, fornos, micro)</option>
+                            <option value="10">Tabela 10 (Fogões e cooktops)</option>
+                            <option value="12">Tabela 12 (Ar-condicionados)</option>
+                            <option value="13">Tabela 13 (Estação de recarga VE)</option>
+                          </select>
+                        </template>
+                      </div>
+                    </td>
+                    <td class="py-3 px-4 text-center font-mono text-xs text-slate-600" x-text="catalogar(a) ? catalogar(a).it : '—'"></td>
+                    <td class="py-3 px-3 text-center">
+                      <button @click="removeApp(idx)" class="p-1 text-slate-400 hover:text-rose-600 rounded-md hover:bg-rose-50 transition-colors" title="Remover aparelho">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Datalist para autocomplete -->
+        <datalist id="catalogo-aparelhos">
+          <option value="Chuveiro">
+          <option value="Torneira Elétrica">
+          <option value="Aquecedor de Água">
+          <option value="Ferro Elétrico">
+          <option value="Aquecedor Central / Boiler">
+          <option value="Secadora de Roupa">
+          <option value="Máquina de Lavar">
+          <option value="Lava-Louças">
+          <option value="Micro-ondas">
+          <option value="Forno Elétrico">
+          <option value="Fogão Elétrico / Cooktop">
+          <option value="Ar-Condicionado">
+          <option value="Estação de Recarga Veicular (Wallbox)">
+        </datalist>
+
+      </section>
+
+      <!-- ========================================== -->
+      <!-- PASSO 3: DEMANDA (DIS-NOR-030) -->
+      <!-- ========================================== -->
+      <section x-show="step === 3" class="space-y-6">
+        
+        <!-- Header -->
+        <div class="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="px-2.5 py-1 rounded-md bg-[#eef6fa] text-[#1d6184] text-xs font-bold">Passo 3 de 4</span>
+              <h2 class="text-xl font-bold text-slate-900">Cálculo de Demanda Conforme Norma DIS-NOR-030</h2>
+            </div>
+            <p class="text-sm text-slate-600 mt-1">
+              Agrupamento automático por tabelas da concessionária Neoenergia Coelba. A Tabela 6 aplica fator sobre a potência total somada de luz e tomadas; as Tabelas 7 a 13 aplicam fatores de coincidência com base na quantidade de equipamentos.
+            </p>
+          </div>
+          <div class="text-right">
+            <span class="text-xs font-semibold uppercase text-slate-400 block">Demanda Final</span>
+            <span class="num text-2xl font-black text-[#287da7]" x-text="n(demandaTotal()) + ' VA'"></span>
+            <span class="text-xs font-bold text-[#b67f03] block" x-text="'(' + n(demandaTotal() / 1000, 2) + ' kVA)'"></span>
+          </div>
+        </div>
+
+        <!-- Tabela de Demanda -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+          <div class="overflow-x-auto custom-scrollbar">
+            <table class="w-full text-left text-sm">
+              <thead class="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                <tr>
+                  <th class="py-3.5 px-4 w-32">Tabela Norma</th>
+                  <th class="py-3.5 px-4 min-w-[280px]">Cargas / Aparelhos Agrupados</th>
+                  <th class="py-3.5 px-4 w-44 text-right">Soma Potência (VA)</th>
+                  <th class="py-3.5 px-4 w-28 text-center">Quantidade</th>
+                  <th class="py-3.5 px-4 w-32 text-right">Fator de Demanda</th>
+                  <th class="py-3.5 px-4 w-48 text-right bg-[#fef8eb] text-[#b67f03]">Potência Corrigida (VA)</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-200 text-slate-700">
+                <template x-for="d in demandaCalculada()" :key="d.n">
+                  <tr class="hover:bg-slate-50/80 transition-colors">
+                    <td class="py-3.5 px-4 font-bold text-slate-900">
+                      <span class="inline-block px-2.5 py-1 rounded-md bg-slate-100 border border-slate-200 text-xs" x-text="'Tabela ' + d.n"></span>
+                    </td>
+                    <td class="py-3.5 px-4">
+                      <span class="font-semibold text-slate-900 block" x-text="d.desc"></span>
+                      <span class="text-xs text-slate-500 font-mono block mt-0.5" x-text="d.nomesFormatados"></span>
+                    </td>
+                    <td class="py-3.5 px-4 text-right num font-semibold text-slate-800" x-text="n(d.p)"></td>
+                    <td class="py-3.5 px-4 text-center num text-slate-700" x-text="d.q"></td>
+                    <td class="py-3.5 px-4 text-right num font-mono font-bold text-[#287da7]" x-text="n(d.fator, 2)"></td>
+                    <td class="py-3.5 px-4 text-right num font-extrabold text-slate-900 bg-[#fef8eb]/60" x-text="n(d.corrigida)"></td>
+                  </tr>
+                </template>
+              </tbody>
+              <tfoot class="bg-slate-100 font-bold border-t-2 border-slate-200 text-slate-900">
+                <tr>
+                  <td class="py-4 px-4 text-left font-bold" colspan="2">Demanda Total da Instalação</td>
+                  <td class="py-4 px-4 text-right num font-bold" x-text="n(potenciaInstaladaTotal()) + ' VA'"></td>
+                  <td class="py-4 px-4 text-center text-xs text-slate-500">—</td>
+                  <td class="py-4 px-4 text-right text-xs text-slate-500">Média ponderada</td>
+                  <td class="py-4 px-4 text-right num font-black text-xl text-[#287da7] bg-[#fef8eb]">
+                    <span x-text="n(demandaTotal()) + ' VA'"></span>
+                    <span class="block text-xs font-semibold text-[#b67f03]" x-text="n(demandaTotal() / 1000, 2) + ' kVA'"></span>
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+
+        <!-- Parecer do Padrão de Entrada (Neoenergia Coelba) -->
+        <div class="rounded-2xl border p-5 sm:p-6" :class="categoriaAtendimento().cor">
+          <div class="flex items-start gap-4">
+            <div class="w-10 h-10 rounded-xl bg-white shadow-xs flex items-center justify-center shrink-0 border border-slate-200">
+              <svg class="w-6 h-6 text-[#287da7]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="text-xs uppercase font-extrabold tracking-wider">Recomendação de Atendimento Concessionária</span>
+                <span class="px-2 py-0.5 rounded text-[11px] font-bold bg-white/80" x-text="categoriaAtendimento().limite"></span>
+              </div>
+              <h3 class="text-lg font-bold mt-1 text-slate-900" x-text="categoriaAtendimento().tipo"></h3>
+              <p class="text-sm mt-1 text-slate-700 leading-relaxed" x-text="categoriaAtendimento().status"></p>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ========================================== -->
+      <!-- PASSO 4: CIRCUITOS (NBR 5410) -->
+      <!-- ========================================== -->
+      <section x-show="step === 4" class="space-y-6">
+        
+        <!-- Header & Electrical Settings -->
+        <div class="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-xs">
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-slate-200">
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="px-2.5 py-1 rounded-md bg-[#eef6fa] text-[#1d6184] text-xs font-bold">Passo 4 de 4</span>
+                <h2 class="text-xl font-bold text-slate-900">Quadro de Distribuição de Circuitos & Condutores</h2>
+              </div>
+              <p class="text-sm text-slate-600 mt-1">
+                Dimensionamento por limite de potência máxima, capacidade de condução de corrente e critério da seção mínima conforme NBR 5410. Isolação PVC 70°C, referência B1.
+              </p>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="px-3 py-1.5 rounded-xl bg-slate-100 border border-slate-200 text-xs font-bold text-slate-700" x-text="'Potência máx. p/ circuito: ' + n(potenciaMaxCircuito()) + ' VA'"></span>
+            </div>
+          </div>
+
+          <!-- Configuration Controls -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-4 mt-5">
+            <div>
+              <label class="block text-xs font-bold text-slate-600 mb-1.5">Tensão Nominal (V)</label>
+              <select x-model.number="V" class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#287da7] font-semibold">
+                <option :value="127">127 V (Fase-Neutro)</option>
+                <option :value="220">220 V (Fase-Neutro / Fase-Fase)</option>
+                <option :value="380">380 V (Fase-Fase-Fase)</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-600 mb-1.5">Tipo de Instalação</label>
+              <select x-model="inst" class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#287da7] font-semibold">
+                <option value="Monofásico">Monofásico (2 cond. carr.)</option>
+                <option value="Bifásico">Bifásico (2 cond. carr.)</option>
+                <option value="Trifásico">Trifásico (3 cond. carr.)</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-600 mb-1.5">FCA (Agrupamento)</label>
+              <input type="number" step="0.01" min="0.2" max="1" x-model.number="fca" 
+                     class="num w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#287da7]">
+              <span class="text-[10px] text-slate-400 mt-1 block">Padrão: 0.57 (4-5 circ.)</span>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-600 mb-1.5">FCT (Temperatura)</label>
+              <input type="number" step="0.01" min="0.5" max="1.5" x-model.number="fct" 
+                     class="num w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#287da7]">
+              <span class="text-[10px] text-slate-400 mt-1 block">Padrão: 1.00 (30°C)</span>
+            </div>
+
+            <div class="col-span-2 sm:col-span-4 lg:col-span-1">
+              <label class="block text-xs font-bold text-slate-600 mb-1.5">Balanceamento de Fases</label>
+              <div class="grid grid-cols-2 gap-1.5">
+                <label class="flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-xl border text-xs font-semibold cursor-pointer transition-all"
+                       :class="balanceamentoAtivo ? 'border-[#287da7] bg-[#eef6fa] text-[#1d6184] shadow-xs' : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50'">
+                  <input type="radio"
+                         name="balanceamento_fases"
+                         :checked="balanceamentoAtivo"
+                         @change="balanceamentoAtivo = true; notificar('Balanceamento Automático de Fases ativado.')"
+                         class="accent-[#287da7]">
+                  <span>Ativo</span>
+                </label>
+                <label class="flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-xl border text-xs font-semibold cursor-pointer transition-all"
+                       :class="!balanceamentoAtivo ? 'border-[#dc9b04] bg-[#fef8eb] text-[#b67f03] shadow-xs' : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50'">
+                  <input type="radio"
+                         name="balanceamento_fases"
+                         :checked="!balanceamentoAtivo"
+                         @change="balanceamentoAtivo = false; notificar('Balanceamento Automático de Fases desativado.')"
+                         class="accent-[#dc9b04]">
+                  <span>Inativo</span>
+                </label>
+              </div>
+              <span class="text-[10px] text-slate-400 mt-1 block">Distribuição automática</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Painel de Balanceamento Automático de Fases -->
+        <div x-show="balanceamentoAtivo" class="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-xs">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-200">
+            <div>
+              <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                <span>Balanceamento Automático de Fases</span>
+                <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold border"
+                      :class="resumoBalanceamentoFases().cor"
+                      x-text="resumoBalanceamentoFases().status + (resumoBalanceamentoFases().fases.length > 1 ? ' (' + n(resumoBalanceamentoFases().desequilibrio, 1) + '%)' : '')"></span>
+              </h3>
+              <p class="text-xs text-slate-500 mt-0.5">
+                <span x-show="inst === 'Monofásico'">Instalação monofásica: toda a carga concentrada na Fase R.</span>
+                <span x-show="inst === 'Bifásico'">Distribuição equilibrada entre Fases R e S (aparelhos TUE podem operar em duas fases R+S; demais circuitos inteiros na fase menos carregada).</span>
+                <span x-show="inst === 'Trifásico'">Distribuição equilibrada entre Fases R, S e T (cada aparelho eletrônico e circuito mantido integralmente em uma única fase, sem divisão).</span>
+              </p>
+            </div>
+            <div class="text-right shrink-0">
+              <span class="block text-[11px] uppercase font-bold tracking-wider text-slate-400">Carga Total Distribuída</span>
+              <span class="num text-lg font-extrabold text-[#287da7]" x-text="n(resumoBalanceamentoFases().totalPot) + ' VA'"></span>
+            </div>
+          </div>
+
+          <div class="grid gap-4 mt-4"
+               :class="resumoBalanceamentoFases().fases.length === 1 ? 'grid-cols-1 max-w-sm' : (resumoBalanceamentoFases().fases.length === 2 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1 sm:grid-cols-3')">
+            <template x-for="f in resumoBalanceamentoFases().fases" :key="'fase-card-' + f.nome">
+              <div class="rounded-xl p-4 border border-slate-200 bg-slate-50/70">
+                <div class="flex items-center justify-between mb-2">
+                  <div class="flex items-center gap-2">
+                    <span class="w-7 h-7 rounded-lg font-mono font-extrabold text-xs flex items-center justify-center border"
+                          :class="f.nome === 'R' ? 'bg-blue-100 text-blue-900 border-blue-300' : (f.nome === 'S' ? 'bg-amber-100 text-amber-900 border-amber-300' : 'bg-emerald-100 text-emerald-900 border-emerald-300')"
+                          x-text="f.nome"></span>
+                    <span class="font-bold text-sm text-slate-900" x-text="'Fase ' + f.nome"></span>
+                  </div>
+                  <span class="num text-xs font-bold px-2 py-0.5 rounded bg-white border border-slate-200 text-slate-700" x-text="n(f.percentual, 1) + '%'"></span>
+                </div>
+
+                <div class="w-full h-2 rounded-full bg-slate-200 overflow-hidden mb-3">
+                  <div class="h-full rounded-full transition-all duration-300"
+                       :class="f.nome === 'R' ? 'bg-[#287da7]' : (f.nome === 'S' ? 'bg-[#dc9b04]' : 'bg-emerald-600')"
+                       :style="'width: ' + Math.min(100, f.percentual) + '%'"></div>
+                </div>
+
+                <div class="flex items-baseline justify-between text-xs">
+                  <div>
+                    <span class="text-slate-500 block text-[11px]">Potência na Fase</span>
+                    <span class="num font-extrabold text-base text-slate-900" x-text="n(f.potencia) + ' VA'"></span>
+                  </div>
+                  <div class="text-right">
+                    <span class="text-slate-500 block text-[11px]">Corrente Estimada</span>
+                    <span class="num font-bold text-slate-800" x-text="n(f.corrente, 2) + ' A'"></span>
+                  </div>
+                </div>
+                <div class="mt-2 pt-2 border-t border-slate-200 text-[11px] text-slate-500 flex justify-between">
+                  <span>Circuitos atendidos</span>
+                  <span class="num font-semibold text-slate-700" x-text="f.qtdCircuitos"></span>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+
+        <!-- Tabela de Circuitos -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+          <div class="overflow-x-auto custom-scrollbar">
+            <table class="w-full text-left text-sm">
+              <thead class="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                <tr>
+                  <th class="py-3.5 px-4 w-14 text-center">Nº</th>
+                  <th class="py-3.5 px-4 w-36">Tipo</th>
+                  <th x-show="balanceamentoAtivo" class="py-3.5 px-4 w-24 text-center">Fase</th>
+                  <th class="py-3.5 px-4 min-w-[240px]">Descrição / Cômodos Atendidos</th>
+                  <th class="py-3.5 px-4 w-36 text-right">Potência (VA)</th>
+                  <th class="py-3.5 px-4 w-28 text-right">Ip (A)</th>
+                  <th class="py-3.5 px-4 w-28 text-right">Ic (A)</th>
+                  <th class="py-3.5 px-4 w-32 text-right bg-[#eef6fa] text-[#1d6184]">Seção (mm²)</th>
+                  <th class="py-3.5 px-4 w-28 text-right">Iz (A)</th>
+                  <th class="py-3.5 px-4 w-32 text-center bg-[#fef8eb] text-[#b67f03]">Disjuntor</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-200 text-slate-700">
+                <template x-for="c in circuitosCalculados()" :key="c.n">
+                  <tr class="hover:bg-slate-50/80 transition-colors">
+                    <td class="py-3.5 px-4 text-center font-bold text-slate-900">
+                      <span class="w-7 h-7 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center font-mono text-xs mx-auto" x-text="c.n"></span>
+                    </td>
+                    <td class="py-3.5 px-4">
+                      <span class="inline-block px-2.5 py-1 rounded-md text-xs font-semibold"
+                            :class="c.tipo === 'Iluminação' ? 'bg-amber-100 text-amber-900 border border-amber-200' : (c.tipo.includes('TUG') ? 'bg-blue-100 text-blue-900 border border-blue-200' : 'bg-purple-100 text-purple-900 border border-purple-200')"
+                            x-text="c.tipo"></span>
+                    </td>
+                    <td x-show="balanceamentoAtivo" class="py-3.5 px-4 text-center">
+                      <span class="inline-block px-2 py-0.5 rounded-md font-mono font-bold text-xs border"
+                            :class="c.fase === 'R' ? 'bg-blue-50 text-blue-800 border-blue-300' : (c.fase === 'S' ? 'bg-amber-50 text-amber-800 border-amber-300' : (c.fase === 'T' ? 'bg-emerald-50 text-emerald-800 border-emerald-300' : 'bg-[#eef6fa] text-[#1d6184] border-[#b9d7e7]'))"
+                            x-text="c.fase"></span>
+                    </td>
+                    <td class="py-3.5 px-4 font-medium text-slate-900" x-text="c.desc"></td>
+                    <td class="py-3.5 px-4 text-right num font-semibold text-slate-800" x-text="n(c.p)"></td>
+                    <td class="py-3.5 px-4 text-right num text-slate-600" x-text="n(c.ip, 2)"></td>
+                    <td class="py-3.5 px-4 text-right num text-slate-600" x-text="n(c.ic, 2)"></td>
+                    <td class="py-3.5 px-4 text-right num font-black text-[#1d6184] bg-[#eef6fa]" x-text="n(c.secao, 1) + ' mm²'"></td>
+                    <td class="py-3.5 px-4 text-right num text-slate-600" x-text="n(c.iz, 1)"></td>
+                    <td class="py-3.5 px-4 text-center bg-[#fef8eb]">
+                      <span class="inline-block px-2.5 py-1 rounded-md bg-white border border-[#dc9b04]/40 font-mono font-bold text-xs text-[#b67f03]" x-text="c.disjuntor + ' A'"></span>
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Critérios de Dimensionamento NBR 5410 -->
+        <div class="p-4 rounded-xl bg-slate-100 border border-slate-200 text-xs text-slate-600 space-y-1.5">
+          <p><strong>Divisão de circuitos (NBR 5410 itens 9.5.3.1 e 9.5.3.2):</strong> Iluminação e tomadas divididos em circuitos com corrente de projeto limitada a 10 A (<code class="num font-bold">Ip &le; 10 A</code>). Para a iluminação, cada cômodo pertence integralmente a um único circuito (sem fracionamento de cômodo em múltiplos circuitos). Para áreas molhadas (Cozinha, Suíte, Banheiro, etc.), cada local possui circuito exclusivo e individual, sem mesclagem entre si. Pontos específicos superiores a 10 A constituem circuitos dedicados independentes (TUE).</p>
+          <p x-show="balanceamentoAtivo"><strong>Balanceamento de fases:</strong> Em instalações bifásicas (R, S) ou trifásicas (R, S, T), os circuitos são alocados automaticamente buscando equilíbrio de carga entre as fases. Um aparelho específico nunca é dividido entre fases, exceto quando o tipo de instalação for Bifásico (R+S).</p>
+          <p><strong>Fórmulas aplicadas:</strong> Corrente de projeto <code class="num font-bold" x-text="V === 380 ? 'Ip = P / (√3 × 380)' : 'Ip = P / V'"></code>. Corrente corrigida <code class="num font-bold">Ic = Ip / (FCA × FCT)</code>. Capacidade do cabo <code class="num font-bold">Iz &ge; Ic</code>.</p>
+          <p><strong>Seções mínimas (NBR 5410 item 6.2.7):</strong> 1,5 mm² para iluminação; 2,5 mm² para tomadas (TUG e TUE). Isolação PVC 70°C, condutores de cobre em eletroduto embutido (Método B1).</p>
+          <p><strong>Proteção (Disjuntores):</strong> Coordenados conforme <code class="num font-bold">Ip &le; In &le; Iz × FCA × FCT</code>. Recomenda-se disjuntores termomagnéticos padrão DIN (Curva B para iluminação, Curva C para tomadas e motores).</p>
+        </div>
+
+      </section>
+
+      <!-- Bottom Wizard Control Bar -->
+      <div class="no-print mt-8 pt-6 border-t border-slate-200 flex items-center justify-between">
+        <button x-show="step > 1" @click="step--" 
+                title="Passo Anterior (Atalho: Alt + Seta Esquerda)"
+                class="px-5 py-2.5 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 text-sm font-semibold rounded-xl shadow-xs transition-colors flex items-center gap-2">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+          </svg>
+          <span>Passo Anterior</span>
+          <kbd class="hidden sm:inline-block font-mono text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded border border-slate-300">Alt+←</kbd>
+        </button>
+        <span x-show="step === 1"></span>
+
+        <div class="flex items-center gap-3">
+          <button @click="imprimir('rel')" 
+                  title="Exportar Relatório PDF (Atalho: Alt + R)"
+                  class="px-4 py-2.5 text-sm font-semibold text-[#1d6184] bg-white hover:bg-[#eef6fa] border border-[#287da7] rounded-xl transition-colors hidden sm:flex items-center gap-2">
+            <svg class="w-4 h-4 text-[#287da7]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+            </svg>
+            <span>Exportar Relatório PDF</span>
+            <kbd class="hidden md:inline-block font-mono text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded border border-slate-300">Alt+R</kbd>
+          </button>
+
+          <button x-show="step < 4" @click="step++" 
+                  title="Próximo Passo (Atalho: Alt + P ou Ctrl + Enter)"
+                  class="px-6 py-2.5 bg-[#287da7] hover:bg-[#1d6184] text-white text-sm font-bold rounded-xl shadow-md shadow-[#287da7]/25 transition-all flex items-center gap-2">
+            <span>Próximo Passo</span>
+            <kbd class="font-mono text-[10px] bg-white/20 text-white px-1.5 py-0.5 rounded border border-white/30">Alt+P</kbd>
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+
+          <button x-show="step === 4" @click="imprimir('mem')" 
+                  title="Exportar Memorial Completo PDF (Atalho: Alt + M)"
+                  class="px-6 py-2.5 bg-gradient-to-r from-[#dc9b04] to-[#b67f03] hover:from-[#b67f03] hover:to-[#916502] text-white text-sm font-bold rounded-xl shadow-md shadow-[#dc9b04]/25 transition-all flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <span>Exportar Memorial Completo (PDF)</span>
+            <kbd class="font-mono text-[10px] bg-white/20 text-white px-1.5 py-0.5 rounded border border-white/30">Alt+M</kbd>
+          </button>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="no-print bg-white border-t border-slate-200 mt-12 py-8 px-4 sm:px-6 lg:px-8 text-xs text-slate-500">
+      <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+        <div>
+          <p class="font-bold text-slate-700">DimensionaElétrico • Ferramenta de Apoio Técnico</p>
+          <p class="mt-0.5">Metodologia fundamentada na ABNT NBR 5410:2004 e Norma Técnica DIS-NOR-030 (Fornecimento em Tensão Secundária - Neoenergia Coelba).</p>
+        </div>
+        <div class="flex items-center gap-4">
+          <button @click="showShortcutsModal = true" class="text-[#287da7] hover:underline font-medium">Atalhos (?)</button>
+          <span>•</span>
+          <button @click="showProjetoModal = true" class="text-[#287da7] hover:underline font-medium">Configurar ART/RRT</button>
+          <span>•</span>
+          <button @click="copiarMemorial()" class="text-[#287da7] hover:underline font-medium">Copiar Memorial em Texto</button>
+        </div>
+      </div>
+    </footer>
+
+  </div>
+
+  <!-- MODAL: DADOS DO PROJETO (ART / RRT) -->
+  <div x-show="showProjetoModal" class="no-print fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200">
+      <div class="flex items-center justify-between pb-4 border-b border-slate-200">
+        <h3 class="text-lg font-bold text-slate-900">Identificação do Projeto e ART/RRT</h3>
+        <button @click="showProjetoModal = false" class="text-slate-400 hover:text-slate-600">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+        </button>
+      </div>
+      <div class="space-y-4 py-4 text-sm">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Título do Projeto</label>
+          <input type="text" x-model="projeto.nome" class="w-full px-3 py-2 border border-slate-300 rounded-lg">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Cliente / Proprietário</label>
+          <input type="text" x-model="projeto.cliente" class="w-full px-3 py-2 border border-slate-300 rounded-lg">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Responsável Técnico (Engenheiro / Eletrotécnico)</label>
+          <input type="text" x-model="projeto.responsavel" class="w-full px-3 py-2 border border-slate-300 rounded-lg">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Número da ART / RRT / CFT</label>
+          <input type="text" x-model="projeto.art" class="w-full px-3 py-2 border border-slate-300 rounded-lg">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Localização / Concessionária</label>
+          <input type="text" x-model="projeto.local" class="w-full px-3 py-2 border border-slate-300 rounded-lg">
+        </div>
+      </div>
+      <div class="pt-4 border-t border-slate-200 flex justify-end gap-2">
+        <button @click="showProjetoModal = false" class="px-4 py-2 bg-[#287da7] text-white text-sm font-semibold rounded-lg hover:bg-[#1d6184]">Salvar e Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: TECLAS DE ATALHO (SHORTCUTS) -->
+  <div x-show="showShortcutsModal" 
+       x-transition:enter="transition ease-out duration-200"
+       x-transition:enter-start="opacity-0 scale-95"
+       x-transition:enter-end="opacity-100 scale-100"
+       x-transition:leave="transition ease-in duration-150"
+       x-transition:leave-start="opacity-100 scale-100"
+       x-transition:leave-end="opacity-0 scale-95"
+       class="no-print fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200">
+      <div class="flex items-center justify-between pb-4 border-b border-slate-200">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-[#eef6fa] text-[#1d6184] flex items-center justify-center font-bold">
+            ⌨️
+          </div>
+          <div>
+            <h3 class="text-lg font-bold text-slate-900">Teclas de Atalho do Teclado</h3>
+            <p class="text-xs text-slate-500">Navegue e preencha o dimensionamento em alta velocidade</p>
+          </div>
+        </div>
+        <button @click="showShortcutsModal = false" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+        </button>
+      </div>
+
+      <div class="py-4 space-y-4 text-xs">
+        
+        <!-- Grupo 1: Navegação dos Passos -->
+        <div>
+          <h4 class="font-bold text-slate-800 uppercase tracking-wider text-[11px] mb-2 text-[#287da7]">Navegação entre Passos (Tabs)</h4>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div class="flex items-center justify-between p-2 rounded-lg bg-slate-50 border border-slate-200">
+              <span class="font-medium text-slate-700">Ir para Passo 1: Cômodos</span>
+              <kbd class="font-mono text-xs px-2 py-1 bg-white border border-slate-300 rounded shadow-xs font-bold text-slate-800">Alt + 1</kbd>
+            </div>
+            <div class="flex items-center justify-between p-2 rounded-lg bg-slate-50 border border-slate-200">
+              <span class="font-medium text-slate-700">Ir para Passo 2: Aparelhos</span>
+              <kbd class="font-mono text-xs px-2 py-1 bg-white border border-slate-300 rounded shadow-xs font-bold text-slate-800">Alt + 2</kbd>
+            </div>
+            <div class="flex items-center justify-between p-2 rounded-lg bg-slate-50 border border-slate-200">
+              <span class="font-medium text-slate-700">Ir para Passo 3: Demanda</span>
+              <kbd class="font-mono text-xs px-2 py-1 bg-white border border-slate-300 rounded shadow-xs font-bold text-slate-800">Alt + 3</kbd>
+            </div>
+            <div class="flex items-center justify-between p-2 rounded-lg bg-slate-50 border border-slate-200">
+              <span class="font-medium text-slate-700">Ir para Passo 4: Circuitos</span>
+              <kbd class="font-mono text-xs px-2 py-1 bg-white border border-slate-300 rounded shadow-xs font-bold text-slate-800">Alt + 4</kbd>
+            </div>
+            <div class="flex items-center justify-between p-2 rounded-lg bg-slate-50 border border-slate-200 sm:col-span-2">
+              <span class="font-medium text-slate-700">Avançar para o Próximo Passo</span>
+              <div class="flex items-center gap-1.5">
+                <kbd class="font-mono text-xs px-2 py-1 bg-white border border-slate-300 rounded shadow-xs font-bold text-slate-800">Alt + P</kbd>
+                <span class="text-slate-400">ou</span>
+                <kbd class="font-mono text-xs px-2 py-1 bg-white border border-slate-300 rounded shadow-xs font-bold text-slate-800">Alt + →</kbd>
+                <span class="text-slate-400">ou</span>
+                <kbd class="font-mono text-xs px-2 py-1 bg-white border border-slate-300 rounded shadow-xs font-bold text-slate-800">Ctrl + Enter</kbd>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Grupo 2: Inserção Rápida e Tecla TAB -->
+        <div>
+          <h4 class="font-bold text-slate-800 uppercase tracking-wider text-[11px] mb-2 text-[#b67f03]">Ações de Adição & Tecla TAB</h4>
+          <div class="space-y-2">
+            <div class="flex items-center justify-between p-2.5 rounded-lg bg-blue-50/60 border border-blue-200">
+              <div>
+                <span class="font-bold text-slate-800 block">Adicionar Cômodo (+ Cômodo)</span>
+                <span class="text-[11px] text-slate-500">Cria uma nova linha e foca automaticamente no nome do cômodo</span>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <kbd class="font-mono text-xs px-2 py-1 bg-white border border-blue-300 rounded shadow-xs font-bold text-slate-800">Alt + C</kbd>
+                <span class="text-slate-400">ou</span>
+                <span class="text-[11px] font-semibold text-[#1d6184]">TAB no campo Perímetro</span>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between p-2.5 rounded-lg bg-amber-50/60 border border-amber-200">
+              <div>
+                <span class="font-bold text-slate-800 block">Adicionar Aparelho (+ Aparelho)</span>
+                <span class="text-[11px] text-slate-500">Cria uma nova linha e foca automaticamente no nome do aparelho</span>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <kbd class="font-mono text-xs px-2 py-1 bg-white border border-amber-300 rounded shadow-xs font-bold text-slate-800">Alt + A</kbd>
+                <span class="text-slate-400">ou</span>
+                <span class="text-[11px] font-semibold text-[#b67f03]">TAB no campo Quantidade</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Grupo 3: Exportação em PDF -->
+        <div>
+          <h4 class="font-bold text-slate-800 uppercase tracking-wider text-[11px] mb-2 text-[#1d6184]">Exportação Técnica</h4>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div class="flex items-center justify-between p-2 rounded-lg bg-slate-50 border border-slate-200">
+              <span class="font-medium text-slate-700">Exportar Relatório Técnico (PDF)</span>
+              <kbd class="font-mono text-xs px-2 py-1 bg-white border border-slate-300 rounded shadow-xs font-bold text-slate-800">Alt + R</kbd>
+            </div>
+            <div class="flex items-center justify-between p-2 rounded-lg bg-slate-50 border border-slate-200">
+              <span class="font-medium text-slate-700">Exportar Memorial de Cálculo (PDF)</span>
+              <kbd class="font-mono text-xs px-2 py-1 bg-white border border-slate-300 rounded shadow-xs font-bold text-slate-800">Alt + M</kbd>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="pt-4 border-t border-slate-200 flex justify-between items-center text-xs text-slate-500">
+        <span>Pressione <kbd class="px-1.5 py-0.5 bg-slate-100 border border-slate-300 rounded font-mono">Esc</kbd> para fechar</span>
+        <button @click="showShortcutsModal = false" class="px-4 py-2 bg-[#287da7] text-white text-xs font-semibold rounded-lg hover:bg-[#1d6184]">Entendido</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: GUIA DE INSTALAÇÃO iOS SAFARI -->
+  <div x-show="showIOSGuide"
+       x-transition:enter="transition ease-out duration-200"
+       x-transition:enter-start="opacity-0 scale-95"
+       x-transition:enter-end="opacity-100 scale-100"
+       x-transition:leave="transition ease-in duration-150"
+       x-transition:leave-start="opacity-100 scale-100"
+       x-transition:leave-end="opacity-0 scale-95"
+       class="no-print fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-200">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-200">
+        <h3 class="text-base font-bold text-slate-900">Instalar no iPhone / iPad</h3>
+        <button @click="showIOSGuide = false" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+        </button>
+      </div>
+      <div class="py-4 text-sm text-slate-600 space-y-2.5">
+        <p>Para utilizar o <strong>DimensionaElétrico</strong> como aplicativo off-line no iOS:</p>
+        <p>1. Toque no botão <strong>Compartilhar</strong> na barra do Safari.</p>
+        <p>2. Role para baixo e toque em <strong>Adicionar à Tela de Início</strong>.</p>
+      </div>
+      <button @click="showIOSGuide = false" class="w-full py-2.5 bg-[#287da7] hover:bg-[#1d6184] text-white text-sm font-semibold rounded-xl transition-colors">
+        Fechar
+      </button>
+    </div>
+  </div>
+
+
+  <!-- ======================================================= -->
+  <!-- LAYOUT DE IMPRESSÃO 1: RELATÓRIO TÉCNICO OFICIAL (PDF)  -->
+  <!-- ======================================================= -->
+  <div id="print-report" class="hidden text-slate-900 p-2 text-xs">
+    
+    <!-- Cabeçalho Oficial -->
+    <div class="border-b-2 border-slate-900 pb-3 mb-4">
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-xl font-bold uppercase tracking-tight text-[#1d6184]">Relatório de Dimensionamento Elétrico</h1>
+          <p class="text-xs font-semibold text-slate-600">Em conformidade com a ABNT NBR 5410:2004 e Norma DIS-NOR-030 (Neoenergia Coelba)</p>
+        </div>
+        <div class="text-right text-[11px]">
+          <p class="font-bold" x-text="projeto.nome"></p>
+          <p class="text-slate-500" x-text="'Emitido em: ' + new Date().toLocaleDateString('pt-BR')"></p>
+        </div>
+      </div>
+
+      <!-- Metadados do Projeto -->
+      <div class="grid grid-cols-3 gap-2 mt-3 pt-2 border-t border-slate-200 text-[10px]">
+        <div><strong>Cliente:</strong> <span x-text="projeto.cliente"></span></div>
+        <div><strong>Responsável Técnico:</strong> <span x-text="projeto.responsavel"></span></div>
+        <div><strong>ART / RRT:</strong> <span x-text="projeto.art"></span></div>
+        <div class="col-span-2"><strong>Local:</strong> <span x-text="projeto.local"></span></div>
+        <div><strong>Parâmetros:</strong> <span x-text="V + ' V • ' + inst + ' • FCA ' + n(fca,2) + ' • FCT ' + n(fct,2)"></span></div>
+      </div>
+    </div>
+
+    <!-- Resumo Geral -->
+    <div class="grid grid-cols-4 gap-2 mb-4 bg-slate-100 p-2 rounded border border-slate-300 text-center">
+      <div>
+        <span class="block text-[9px] uppercase font-bold text-slate-500">Área Total</span>
+        <span class="font-bold text-sm font-mono" x-text="n(totalArea(), 2) + ' m²'"></span>
+      </div>
+      <div>
+        <span class="block text-[9px] uppercase font-bold text-slate-500">Potência Total</span>
+        <span class="font-bold text-sm font-mono" x-text="n(potenciaInstaladaTotal()) + ' VA'"></span>
+      </div>
+      <div>
+        <span class="block text-[9px] uppercase font-bold text-[#b67f03]">Demanda Calculada</span>
+        <span class="font-bold text-sm font-mono text-[#1d6184]" x-text="n(demandaTotal()) + ' VA (' + n(demandaTotal()/1000, 2) + ' kVA)'"></span>
+      </div>
+      <div>
+        <span class="block text-[9px] uppercase font-bold text-slate-500">Total Circuitos</span>
+        <span class="font-bold text-sm font-mono" x-text="circuitosCalculados().length"></span>
+      </div>
+    </div>
+
+    <!-- 1. Cômodos e Cargas Mínimas -->
+    <div class="mb-4 print-avoid-break">
+      <h2 class="font-bold text-xs uppercase mb-1.5 text-slate-800">1. Levantamento de Cômodos e Cargas Mínimas (NBR 5410)</h2>
+      <table class="w-full text-[9px]">
+        <thead class="bg-slate-200 font-bold">
+          <tr>
+            <th class="p-1">Cômodo</th>
+            <th class="p-1 text-right">Área (m²)</th>
+            <th class="p-1 text-right">Perímetro (m)</th>
+            <th class="p-1 text-center">Tipo</th>
+            <th class="p-1 text-right">Tomadas</th>
+            <th class="p-1 text-right">Carga TUG (VA)</th>
+            <th class="p-1 text-right">Pontos Luz</th>
+            <th class="p-1 text-right">Carga Luz (VA)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <template x-for="r in cValidos()" :key="r.nome">
+            <tr>
+              <td class="p-1 font-medium" x-text="r.nome"></td>
+              <td class="p-1 text-right font-mono" x-text="n(r.area, 2)"></td>
+              <td class="p-1 text-right font-mono" x-text="n(r.perim, 2)"></td>
+              <td class="p-1 text-center" x-text="r.mol ? 'Molhada' : 'Seca'"></td>
+              <td class="p-1 text-right font-mono" x-text="comodoCalc(r).tomadas"></td>
+              <td class="p-1 text-right font-mono" x-text="n(comodoCalc(r).tugVa)"></td>
+              <td class="p-1 text-right font-mono" x-text="comodoCalc(r).pontosLuz"></td>
+              <td class="p-1 text-right font-mono" x-text="n(comodoCalc(r).luzVa)"></td>
+            </tr>
+          </template>
+        </tbody>
+        <tfoot class="bg-slate-100 font-bold">
+          <tr>
+            <td class="p-1">Total</td>
+            <td class="p-1 text-right font-mono" x-text="n(totalArea(), 2)"></td>
+            <td class="p-1 text-right font-mono" x-text="n(totalPerim(), 2)"></td>
+            <td></td>
+            <td class="p-1 text-right font-mono" x-text="totalTomadas()"></td>
+            <td class="p-1 text-right font-mono" x-text="n(totalTugVa())"></td>
+            <td class="p-1 text-right font-mono" x-text="totalPontosLuz()"></td>
+            <td class="p-1 text-right font-mono" x-text="n(totalLuzVa())"></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <!-- 2. Aparelhos Específicos TUE -->
+    <div class="mb-4 print-avoid-break">
+      <h2 class="font-bold text-xs uppercase mb-1.5 text-slate-800">2. Aparelhos de Uso Específico TUE (DIS-NOR-030)</h2>
+      <table class="w-full text-[9px]">
+        <thead class="bg-slate-200 font-bold">
+          <tr>
+            <th class="p-1">Aparelho</th>
+            <th class="p-1 text-right">Potência Unit. (VA)</th>
+            <th class="p-1 text-center">Quantidade</th>
+            <th class="p-1 text-right">Potência Total (VA)</th>
+            <th class="p-1 text-center">Tabela DIS-NOR-030</th>
+            <th class="p-1 text-center">Item</th>
+          </tr>
+        </thead>
+        <tbody>
+          <template x-for="a in apps.filter(x => x.nome.trim())" :key="a.nome">
+            <tr>
+              <td class="p-1 font-medium" x-text="a.nome"></td>
+              <td class="p-1 text-right font-mono" x-text="n(a.pot)"></td>
+              <td class="p-1 text-center font-mono" x-text="a.qtd"></td>
+              <td class="p-1 text-right font-mono font-bold" x-text="n((Number(a.pot)||0) * (Number(a.qtd)||0))"></td>
+              <td class="p-1 text-center font-mono" x-text="'Tabela ' + tabNumero(a)"></td>
+              <td class="p-1 text-center font-mono" x-text="catalogar(a) ? catalogar(a).it : '—'"></td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 3. Memória de Demanda DIS-NOR-030 -->
+    <div class="mb-4 print-avoid-break">
+      <h2 class="font-bold text-xs uppercase mb-1.5 text-slate-800">3. Fatores de Demanda e Carga Corrigida (DIS-NOR-030)</h2>
+      <table class="w-full text-[9px]">
+        <thead class="bg-slate-200 font-bold">
+          <tr>
+            <th class="p-1">Tabela</th>
+            <th class="p-1">Descrição do Grupo / Cargas</th>
+            <th class="p-1 text-right">Potência Total (VA)</th>
+            <th class="p-1 text-center">Qtd.</th>
+            <th class="p-1 text-right">Fator Demanda</th>
+            <th class="p-1 text-right">Potência Corrigida (VA)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <template x-for="d in demandaCalculada()" :key="d.n">
+            <tr>
+              <td class="p-1 font-bold font-mono" x-text="'Tabela ' + d.n"></td>
+              <td class="p-1" x-text="d.desc + ' (' + d.nomesFormatados + ')'"></td>
+              <td class="p-1 text-right font-mono" x-text="n(d.p)"></td>
+              <td class="p-1 text-center font-mono" x-text="d.q"></td>
+              <td class="p-1 text-right font-mono font-bold" x-text="n(d.fator, 2)"></td>
+              <td class="p-1 text-right font-mono font-bold" x-text="n(d.corrigida)"></td>
+            </tr>
+          </template>
+        </tbody>
+        <tfoot class="bg-slate-100 font-bold">
+          <tr>
+            <td colspan="2" class="p-1">Demanda Total</td>
+            <td class="p-1 text-right font-mono" x-text="n(potenciaInstaladaTotal())"></td>
+            <td colspan="2"></td>
+            <td class="p-1 text-right font-mono font-bold text-sm text-[#1d6184]" x-text="n(demandaTotal()) + ' VA'"></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <!-- 4. Quadro de Circuitos -->
+    <div class="mb-4 print-avoid-break">
+      <h2 class="font-bold text-xs uppercase mb-1.5 text-slate-800">4. Quadro de Distribuição de Circuitos Terminais (NBR 5410)</h2>
+      <table class="w-full text-[9px]">
+        <thead class="bg-slate-200 font-bold">
+          <tr>
+            <th class="p-1 w-8 text-center">Nº</th>
+            <th class="p-1">Tipo</th>
+            <th x-show="balanceamentoAtivo" class="p-1 w-12 text-center">Fase</th>
+            <th class="p-1">Descrição / Cargas</th>
+            <th class="p-1 text-right">Potência (VA)</th>
+            <th class="p-1 text-right">Ip (A)</th>
+            <th class="p-1 text-right">Ic (A)</th>
+            <th class="p-1 text-right">Seção (mm²)</th>
+            <th class="p-1 text-right">Iz (A)</th>
+            <th class="p-1 text-center">Disjuntor (In)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <template x-for="c in circuitosCalculados()" :key="c.n">
+            <tr>
+              <td class="p-1 text-center font-mono font-bold" x-text="c.n"></td>
+              <td class="p-1" x-text="c.tipo"></td>
+              <td x-show="balanceamentoAtivo" class="p-1 text-center font-mono font-bold" x-text="c.fase"></td>
+              <td class="p-1 font-medium" x-text="c.desc"></td>
+              <td class="p-1 text-right font-mono" x-text="n(c.p)"></td>
+              <td class="p-1 text-right font-mono" x-text="n(c.ip, 2)"></td>
+              <td class="p-1 text-right font-mono" x-text="n(c.ic, 2)"></td>
+              <td class="p-1 text-right font-mono font-bold" x-text="n(c.secao, 1) + ' mm²'"></td>
+              <td class="p-1 text-right font-mono" x-text="n(c.iz, 1)"></td>
+              <td class="p-1 text-center font-mono font-bold" x-text="c.disjuntor + ' A'"></td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+
+      <!-- Resumo de Balanceamento de Fases no Relatório -->
+      <div x-show="balanceamentoAtivo" class="mt-2 p-2 bg-slate-50 border border-slate-300 rounded text-[9px]">
+        <div class="flex items-center justify-between font-bold mb-1">
+          <span>Resumo do Balanceamento de Fases (<span x-text="inst"></span>)</span>
+          <span x-text="resumoBalanceamentoFases().status + (resumoBalanceamentoFases().fases.length > 1 ? ' — Desequilíbrio: ' + n(resumoBalanceamentoFases().desequilibrio, 1) + '%' : '')"></span>
+        </div>
+        <div class="grid gap-2" :class="resumoBalanceamentoFases().fases.length === 1 ? 'grid-cols-1' : (resumoBalanceamentoFases().fases.length === 2 ? 'grid-cols-2' : 'grid-cols-3')">
+          <template x-for="f in resumoBalanceamentoFases().fases" :key="'rep-fase-' + f.nome">
+            <div class="p-1.5 bg-white border border-slate-200 rounded font-mono flex justify-between">
+              <span class="font-bold" x-text="'Fase ' + f.nome + ':'"></span>
+              <span x-text="n(f.potencia) + ' VA (' + n(f.percentual, 1) + '%) • ' + n(f.corrente, 2) + ' A'"></span>
+            </div>
+          </template>
+        </div>
+      </div>
+    </div>
+
+    <!-- Assinatura Técnica -->
+    <div class="mt-8 pt-4 border-t border-slate-300 flex justify-between items-end text-[10px]">
+      <div>
+        <p>Documento gerado para fins de dimensionamento e aprovação técnica.</p>
+        <p class="text-slate-500">Concessionária Neoenergia Coelba • Norma DIS-NOR-030</p>
+      </div>
+      <div class="text-center w-64 border-t border-slate-800 pt-1">
+        <p class="font-bold" x-text="projeto.responsavel"></p>
+        <p class="text-slate-600" x-text="projeto.art"></p>
+      </div>
+    </div>
+
+  </div>
+
+
+  <!-- ========================================================== -->
+  <!-- LAYOUT DE IMPRESSÃO 2: MEMORIAL DE CÁLCULO NORMATIVO (PDF) -->
+  <!-- ========================================================== -->
+  <div id="print-memorial" class="hidden text-slate-900 p-2 text-xs leading-relaxed max-w-4xl mx-auto">
+    
+    <div class="border-b-2 border-slate-900 pb-3 mb-4">
+      <h1 class="text-xl font-bold uppercase tracking-tight text-[#1d6184]">Memorial Descritivo e de Cálculo Normativo</h1>
+      <p class="text-xs font-semibold text-slate-700">Instalações Elétricas de Baixa Tensão Conforme ABNT NBR 5410:2004 e Norma DIS-NOR-030 Neoenergia Coelba</p>
+      <div class="mt-2 text-[10px] text-slate-600">
+        <strong>Obra:</strong> <span x-text="projeto.nome"></span> • <strong>Cliente:</strong> <span x-text="projeto.cliente"></span> • <strong>Responsável:</strong> <span x-text="projeto.responsavel"></span> (<span x-text="projeto.art"></span>)
+      </div>
+    </div>
+
+    <!-- Introdução -->
+    <div class="mb-4">
+      <h2 class="font-bold text-sm uppercase text-[#287da7] mb-1">1. Objetivo e Normas de Referência</h2>
+      <p class="text-[11px] text-slate-700">
+        O presente memorial tem por objetivo apresentar a metodologia e os cálculos de dimensionamento das cargas elétricas, determinação da demanda máxima provável e especificação dos condutores e dispositivos de proteção dos circuitos terminais para a edificação residencial em questão. 
+        As diretrizes fundamentam-se nas normas vigentes:
+      </p>
+      <ul class="list-disc list-inside text-[10px] text-slate-600 mt-1 space-y-0.5">
+        <li><strong>ABNT NBR 5410:2004:</strong> Instalações elétricas de baixa tensão (critérios de previsão de cargas de iluminação e tomadas, agrupamento e capacidade de condução de corrente).</li>
+        <li><strong>Norma DIS-NOR-030 (Neoenergia Coelba):</strong> Fornecimento de energia elétrica em tensão secundária de distribuição (tabelas e curvas de fatores de demanda residencial).</li>
+      </ul>
+    </div>
+
+    <!-- Memória de Cálculo - Iluminação -->
+    <div class="mb-4 print-avoid-break">
+      <h2 class="font-bold text-sm uppercase text-[#287da7] mb-1">2. Memória de Cálculo: Iluminação (NBR 5410 item 9.5.1)</h2>
+      <p class="text-[10px] text-slate-600 mb-2">
+        Critério: Para cômodos ou dependências com área igual ou inferior a 6 m², prevê-se no mínimo 100 VA. Para áreas superiores a 6 m², prevê-se carga mínima de 100 VA para os primeiros 6 m², acrescida de 60 VA para cada aumento de 4 m² inteiros.
+      </p>
+      <div class="bg-slate-50 p-2.5 rounded border border-slate-200 text-[10px] font-mono space-y-1">
+        <template x-for="r in cValidos()" :key="'mem-luz-' + r.nome">
+          <div>
+            <span class="font-bold text-slate-900" x-text="r.nome + ' (' + n(r.area, 2) + ' m²): '"></span>
+            <span x-text="r.area <= 6 ? 'Área &le; 6 m² &rarr; Carga mínima = 100 VA' : '100 + 60 × &lfloor;(' + n(r.area, 2) + ' - 6) / 4&rfloor; = 100 + 60 × ' + Math.floor((r.area - 6)/4) + ' = ' + n(comodoCalc(r).luzVa) + ' VA'"></span>
+          </div>
+        </template>
+        <div class="pt-1.5 border-t border-slate-300 font-bold text-slate-900">
+          Total de Iluminação Instalada: <span x-text="n(totalLuzVa()) + ' VA'"></span> em <span x-text="totalPontosLuz()"></span> pontos.
+        </div>
+      </div>
+    </div>
+
+    <!-- Memória de Cálculo - Tomadas TUG -->
+    <div class="mb-4 print-avoid-break">
+      <h2 class="font-bold text-sm uppercase text-[#287da7] mb-1">3. Memória de Cálculo: Tomadas de Uso Geral - TUG (NBR 5410 itens 9.5.2.2.1 e 9.5.2.2.2)</h2>
+      <p class="text-[10px] text-slate-600 mb-2">
+        <strong>Critérios normatizados:</strong> Conforme item 9.5.2.2.1: <strong>a)</strong> banheiros e análogos: <strong>1 tomada</strong>; <strong>b)</strong> cozinhas, copas, copas-cozinhas, áreas de serviço, lavanderias e análogos: <strong>&lceil;Perímetro &divide; 3,5&rceil;</strong> (independente da área); <strong>c)</strong> varandas: <strong>1 tomada</strong>; <strong>d)</strong> salas e dormitórios: <strong>&lceil;Perímetro &divide; 5&rceil;</strong> (independente da área); <strong>e)</strong> demais cômodos: <strong>1 tomada</strong> se área &le; 6 m² (incl. &le; 2,25 m²) ou <strong>&lceil;Perímetro &divide; 5&rceil;</strong> se área &gt; 6 m².
+        Conforme item 9.5.2.2.2 alínea 'a', em áreas molhadas atribui-se <strong>600 VA por tomada</strong> até o limite normatizado (<span x-text="limiteTomadas600()"></span> tomadas por cômodo, pois o total em áreas molhadas é <span x-text="totalTomadasMolhadas() > 6 ? '> 6 tomadas &rarr; máx 2 de 600 VA' : '&le; 6 tomadas &rarr; até 3 de 600 VA'"></span>) e 100 VA por tomada excedente. Em áreas secas: 100 VA por tomada.
+      </p>
+      <div class="bg-slate-50 p-2.5 rounded border border-slate-200 text-[10px] font-mono space-y-1">
+        <template x-for="r in cValidos()" :key="'mem-tug-' + r.nome">
+          <div>
+            <span class="font-bold text-slate-900" x-text="r.nome + ' (' + (r.mol ? 'Molhada' : 'Seca') + ', P=' + n(r.perim, 2) + 'm, A=' + n(r.area, 2) + 'm²): '"></span>
+            <span x-text="memTugTexto(r)"></span>
+          </div>
+        </template>
+        <div class="pt-1.5 border-t border-slate-300 font-bold text-slate-900 flex justify-between">
+          <span>Total de Tomadas TUG: <span x-text="totalTomadas()"></span> tomadas, somando <span x-text="n(totalTugVa()) + ' VA'"></span> instalados.</span>
+          <span class="text-slate-600 font-normal">Tomadas em Áreas Molhadas: <span class="font-bold" x-text="totalTomadasMolhadas()"></span> (limite de 600 VA: <span class="font-bold" x-text="limiteTomadas600()"></span> por cômodo)</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Memória de Cálculo - Demanda -->
+    <div class="mb-4 print-avoid-break">
+      <h2 class="font-bold text-sm uppercase text-[#287da7] mb-1">4. Determinação da Demanda Provável (DIS-NOR-030 Neoenergia Coelba)</h2>
+      <p class="text-[10px] text-slate-600 mb-2">
+        A potência corrigida por grupo é o produto da potência somada pelo respectivo fator de demanda. Para a Tabela 6, o fator depende da faixa de potência instalada somada (Iluminação + TUG). Para as Tabelas 7 a 13, o fator é obtido em função da quantidade de aparelhos de uso simultâneo.
+      </p>
+      <div class="bg-slate-50 p-2.5 rounded border border-slate-200 text-[10px] font-mono space-y-1">
+        <template x-for="d in demandaCalculada()" :key="'mem-dem-' + d.n">
+          <div>
+            <span class="font-bold text-slate-900" x-text="'Tabela ' + d.n + ' [' + d.desc + ']: '"></span>
+            <span x-text="'Potência = ' + n(d.p) + ' VA (' + d.q + ' un.) × Fator (' + n(d.fator, 2) + ') = ' + n(d.corrigida) + ' VA'"></span>
+          </div>
+        </template>
+        <div class="pt-2 border-t border-slate-300 font-bold text-sm text-[#1d6184]">
+          Demanda Total Provável (D): <span x-text="n(demandaTotal()) + ' VA = ' + n(demandaTotal() / 1000, 2) + ' kVA'"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Memória de Cálculo - Circuitos e Cabos -->
+    <div class="mb-4 print-avoid-break">
+      <h2 class="font-bold text-sm uppercase text-[#287da7] mb-1">5. Dimensionamento dos Circuitos Terminais e Condutores (NBR 5410)</h2>
+      <p class="text-[10px] text-slate-600 mb-2">
+        Parâmetros aplicados: Tensão nominal = <span x-text="V === 380 ? '380 V (Fase-Fase-Fase)' : V + ' V'"></span>; Instalação = <span x-text="inst"></span>; Condutores de cobre com isolação PVC 70°C; Método de referência B1 (embutido em eletroduto); Fator de Agrupamento FCA = <span x-text="n(fca, 2)"></span>; Fator de Temperatura FCT = <span x-text="n(fct, 2)"></span>. Divisão de circuitos: iluminação e tomadas com corrente de projeto limitada a 10 A (Ip &le; 10 A), mantendo a integridade de cada cômodo na iluminação (cada cômodo atendido integralmente por um único circuito); tomadas de áreas molhadas atendidas por circuitos exclusivos e individuais (NBR 5410 itens 9.5.3.1 e 9.5.3.2); aparelhos com corrente nominal &gt; 10 A constituem circuitos dedicados (TUE).<span x-show="balanceamentoAtivo"> Balanceamento automático de fases distribuindo os circuitos entre R, S e T sem fracionar aparelhos no modo Trifásico, permitindo R+S apenas em instalação Bifásica.</span>
+      </p>
+      <div class="bg-slate-50 p-2.5 rounded border border-slate-200 text-[9px] font-mono space-y-1.5">
+        <template x-for="c in circuitosCalculados()" :key="'mem-circ-' + c.n">
+          <div>
+            <span class="font-bold text-slate-900" x-text="balanceamentoAtivo ? 'Circuito Nº ' + c.n + ' [' + c.fase + '] (' + c.tipo + ' - ' + c.desc + '): ' : 'Circuito Nº ' + c.n + ' (' + c.tipo + ' - ' + c.desc + '): '"></span>
+            <span x-text="'P = ' + n(c.p) + ' VA &rarr; Ip = ' + n(c.p) + (V === 380 ? ' / (√3 × 380)' : ' / ' + V) + ' = ' + n(c.ip, 2) + ' A; Ic = ' + n(c.ip, 2) + ' / (' + n(fca, 2) + ' × ' + n(fct, 2) + ') = ' + n(c.ic, 2) + ' A &rarr; Condutor: ' + n(c.secao, 1) + ' mm² (Iz = ' + n(c.iz, 1) + ' A > Ic) &rarr; Disjuntor Recomendado: ' + c.disjuntor + ' A'"></span>
+          </div>
+        </template>
+        <div x-show="balanceamentoAtivo" class="pt-2 border-t border-slate-300 text-[10px]">
+          <div class="font-bold text-[#1d6184] mb-1">
+            Resumo do Balanceamento de Fases (<span x-text="resumoBalanceamentoFases().status + (resumoBalanceamentoFases().fases.length > 1 ? ' • Desequilíbrio: ' + n(resumoBalanceamentoFases().desequilibrio, 1) + '%' : '')"></span>):
+          </div>
+          <div class="flex flex-wrap gap-3">
+            <template x-for="f in resumoBalanceamentoFases().fases" :key="'mem-fase-' + f.nome">
+              <span x-text="'Fase ' + f.nome + ': ' + n(f.potencia) + ' VA (' + n(f.percentual, 1) + '%) | ' + n(f.corrente, 2) + ' A | ' + f.qtdCircuitos + ' circ.'"></span>
+            </template>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Notas de Responsabilidade -->
+    <div class="mt-6 pt-3 border-t border-slate-300 text-[10px] text-slate-600">
+      <p><strong>Notas Complementares:</strong></p>
+      <p>1. Todos os circuitos de tomadas em áreas molhadas e áreas externas devem possuir dispositivo diferencial residual (DR de alta sensibilidade &le; 30 mA) para proteção contra choques elétricos, conforme NBR 5410.</p>
+      <p>2. Os condutores de proteção (fio terra) devem acompanhar todos os circuitos terminais sem interrupção.</p>
+      <p>3. A responsabilidade técnica pela aprovação na concessionária Neoenergia Coelba e execução física da instalação compete ao profissional habilitado registrado no CREA/CFT.</p>
+    </div>
+
+  </div>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
